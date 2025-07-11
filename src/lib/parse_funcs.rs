@@ -1,12 +1,12 @@
 use crate::lib::{
     req_res_structs::{BodyType, Method, Request, Response}, // для структур Request, Response, BodyType
-    server_errors::ServerError,
-}; // для структуры SeverError
+    server_errors::ServerError, // для структуры SeverError
+}; 
 
 // функция публичная (pub)
 pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
     let mut lines = req_body.lines(); // возвращает итератором по подстрокам, т.е. либо по символам 1) \n
-    // либо 2) \r\n
+    // либо 2) \r\n 
     // &str — срез строки, представляет ссылку на участок UTF-8 в уже существующем String (или на статический литерал).
     let start_line = match lines.next() // вызываем метод .next у итератора lines
     {
@@ -74,7 +74,7 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
     Ok(ret_request) // Возвращаем успешный результат
 }
 
-fn deser_response(response: Response) -> String {
+pub fn deser_response(response: Response) -> String {
     String::default()
 }
 
@@ -215,3 +215,4 @@ else
     Some(value) => value,                          // если в parts нет строки, то вернется None и мы получим пустую строку
     None              => ""
 };*/
+

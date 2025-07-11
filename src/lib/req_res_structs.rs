@@ -29,7 +29,7 @@ pub enum BodyType {
     Plain(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Hash, PartialEq, Eq, Debug, Copy, Clone)]
 pub enum Method {
     GET,
     POST,

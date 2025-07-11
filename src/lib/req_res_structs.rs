@@ -1,8 +1,8 @@
 pub struct Request {
-    method: Method,
-    path: String,
-    headers: Option<Vec<String>>,
-    body: Option<BodyType>,
+    pub method: Method,
+    pub path: String,
+    pub headers: Option<Vec<String>>,
+    pub body: Option<BodyType>,
 }
 
 impl Default for Request {
@@ -11,7 +11,7 @@ impl Default for Request {
             method: Method::GET,
             path: String::default(),
             headers: None,
-            body: None
+            body: None,
         }
     }
 }
@@ -19,18 +19,19 @@ impl Default for Request {
 pub struct Response {
     response_code: usize,
     headers: Option<Vec<String>>,
-    body: Option<BodyType>
+    body: Option<BodyType>,
 }
 
 pub enum BodyType {
     Json(serde_json::Value),
-    Plain(String)
+    Plain(String),
 }
 
+#[derive(Hash, PartialEq, Eq, Debug, Copy, Clone)]
 pub enum Method {
     GET,
     POST,
     PUT,
     DELETE,
-    OTHER
+    OTHER,
 }

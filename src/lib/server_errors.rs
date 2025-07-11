@@ -1,3 +1,6 @@
+#[derive(Debug, Clone)]
 pub enum ServerError {
-    OtherError
+    InitError(String),
+    HandlerError(String),
+    OtherError,
 }

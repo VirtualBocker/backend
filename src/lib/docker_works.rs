@@ -155,6 +155,7 @@ fn docker_action(action: &str, label: &str) -> Result<(), ContainerError>
         // передаем срез, &label чтобы не передавать владение, а передать ссылку + конвертация &String в &str.
         .output() // .output() блокирует текущий поток, пока процесс не будет завершен
         // output возвращает Result<_,std::io::Error>. 
+        // output - запуск нашей команды: docker <action> <label>
         .map_err(|e:std::io::Error| ContainerError::DockerError(format!("Docker Error: {}", e)))?; // Добавил вопрос, поэтому в итоге output имеет итп std::process::Output
         // .map_err - преобразует системную ошибку в пользовательскую
         //            e - замыкание, принимающее исходную ошибку

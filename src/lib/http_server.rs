@@ -1,11 +1,13 @@
+
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
-    net::TcpListener,
-};
+    net::TcpListener,};
 
 use crate::lib::{
-    parse_funcs::{deser_response, parse_request}, req_res_structs::{Method, Request, Response}, server_errors::ServerError
+    req_res_structs::{Request, Response, Method},
+    server_errors::ServerError,
+    parse_funcs::{deser_response, parse_request}
 };
 
 type HandlerFn = fn(Request) -> Response;

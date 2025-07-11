@@ -1,4 +1,7 @@
-use crate::lib::{req_res_structs::{Request, Response}, server_errors::ServerError};
+use crate::lib::{
+    req_res_structs::{Request, Response},
+    server_errors::ServerError,
+};
 
 struct Server {
     // listener: TCPListener,
@@ -9,45 +12,49 @@ impl Server {
     pub fn new() -> Server {
         todo!()
     }
-    
+
     // Добавляет GET хендлер на какой-то path
     #[allow(non_snake_case)]
     pub fn GET<F>(&mut self, path: String, handler: F)
-    where F: Fn(Request) -> Response
+    where
+        F: Fn(Request) -> Response,
     {
         todo!()
     }
-    
+
     // Добавляет POST хендлер на какой-то path
     #[allow(non_snake_case)]
     pub fn POST<F>(&mut self, path: String, handler: F)
-    where F: Fn(Request) -> Response
+    where
+        F: Fn(Request) -> Response,
     {
         todo!()
     }
-    
+
     // Добавляет PUT хендлер на какой-то path
     #[allow(non_snake_case)]
-    pub fn PUT<F>(&mut self, path: String, handler: F) 
-    where F: Fn(Request) -> Response
+    pub fn PUT<F>(&mut self, path: String, handler: F)
+    where
+        F: Fn(Request) -> Response,
     {
         todo!()
     }
-    
+
     // Добавляет DELETE хендлер на какой-то path
     #[allow(non_snake_case)]
     pub fn DELETE<F>(&mut self, path: String, handler: F)
-    where F: Fn(Request) -> Response
+    where
+        F: Fn(Request) -> Response,
     {
         todo!()
     }
-    
+
     // ПОКА НИ НАДА
     // pub fn middleware<F>(&mut self, middleware: F)
     // where F: Fn(Request) -> Option<Request> {
     //     todo!()
     // }
-    
+
     // Запуск сервера
     // По алгоритму:
     // 1. Получаем реквест
@@ -60,15 +67,7 @@ impl Server {
     // 7. Отправляем респонс клиенту
     // 8. ???
     // 9. PROFIT!!!
-    fn start(&mut self) -> Result<(), ServerError> 
-    {
-        
+    fn start(&mut self) -> Result<(), ServerError> {
         Err(ServerError::OtherError)
     }
 }
-
-
-
-
-
-

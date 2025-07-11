@@ -1,8 +1,9 @@
+#[derive(Debug)]
 pub struct Request {
-    method: Method,
-    path: String,
-    headers: Option<Vec<String>>,
-    body: Option<BodyType>,
+    pub method: Method,
+    pub path: String,
+    pub headers: Option<Vec<String>>,
+    pub body: Option<BodyType>,
 }
 
 impl Default for Request {
@@ -22,11 +23,13 @@ pub struct Response {
     body: Option<BodyType>
 }
 
+#[derive(Debug)]
 pub enum BodyType {
     Json(serde_json::Value),
     Plain(String)
 }
 
+#[derive(Debug)]
 pub enum Method {
     GET,
     POST,

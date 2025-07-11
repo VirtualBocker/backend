@@ -1,8 +1,35 @@
 // Файл, который лежит в src/bin/*.rs образует crate-исполняемый файл (main)
 // Из main можно пользоваться только тем, что выставлено наружу (pub) из библиотечного crate и корректно объявлено в lib.rs
 use backend::lib::parse_funcs::parse_request;
+use backend::lib::docker_works::{parse_docker_ps_a, start_container, stop_container, ContainerError, ContainerInfo};
 fn main()
 {
+
+// ------------ DOCKER_WORKS.RS РАЗДЕЛ ------------
+    
+    let containers:Result<Vec<ContainerInfo>, ContainerError> = parse_docker_ps_a();
+
+    println!("{:#?}", containers);
+
+    let mut rezult = stop_container("MyNgnix".to_string());
+
+    match rezult
+    {
+        Ok(()) => println!("Container sucessfully stopped."),
+        Err(_err) => println!("Docker Error! Failed to stop container!"),    
+    }
+
+    rezult = start_container("MyNgnix".to_string());
+
+    match rezult
+    {
+        Ok(()) => println!("Container sucessfully started."),
+        Err(_err) => println!("Docker Error! Failed to start container!"),    
+    }
+    
+
+// ------------ ПРОВЕРКА РАБОТОСПОБНОСТИ ФУНКЦИИ parse_request ------------
+
     let raw_requests = vec![
     "GET /api/status HTTP/1.1\r\n\
 Host: api.example.com\r\n\
@@ -67,5 +94,7 @@ username=foo&password=bar"
             Err(err) => eprintln!("Parse error: {:?}", err),
         }
     }
+
+// ------------ ДРУГОЙ РАЗДЕЛ ------------
     
 }

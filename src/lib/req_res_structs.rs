@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 pub struct Request {
     pub method: Method,
     pub path: String,
@@ -22,12 +23,14 @@ pub struct Response {
     body: Option<BodyType>,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum BodyType {
     Json(serde_json::Value),
     Plain(String),
 }
 
 #[derive(Hash, PartialEq, Eq, Debug, Copy, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum Method {
     GET,
     POST,

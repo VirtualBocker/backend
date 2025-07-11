@@ -1,7 +1,12 @@
+
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
     net::TcpListener,
+
+use crate::lib::{
+    req_res_structs::{Request, Response},
+    server_errors::ServerError,
 };
 
 use crate::lib::{
@@ -42,6 +47,7 @@ impl Server {
 
     // Добавляет GET хендлер на какой-то path
     #[allow(non_snake_case)]
+
     pub fn GET(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
         let paths = self.handlers.get_mut(&Method::GET).unwrap(); // Получаем хэшмапу с путями и хэндлерами
         if paths.contains_key(&path) { // в хэшмапе уже есть такой путь? лови ошибку
@@ -53,23 +59,42 @@ impl Server {
         paths.insert(path, handler); // добавляем хэндер в хэшмапу по заданному пути
 
         Ok(())
+      
+    pub fn GET<F>(&mut self, path: String, handler: F)
+    where
+        F: Fn(Request) -> Response,
+    {
+        todo!()
     }
 
     // Добавляет POST хендлер на какой-то path
     #[allow(non_snake_case)]
     pub fn POST(&mut self, path: String, handler: HandlerFn) {
+    pub fn POST<F>(&mut self, path: String, handler: F)
+    where
+        F: Fn(Request) -> Response,
+    {
         todo!()
     }
 
     // Добавляет PUT хендлер на какой-то path
     #[allow(non_snake_case)]
     pub fn PUT(&mut self, path: String, handler: HandlerFn) {
+    pub fn PUT<F>(&mut self, path: String, handler: F)
+    where
+        F: Fn(Request) -> Response,
+    {
         todo!()
     }
 
     // Добавляет DELETE хендлер на какой-то path
     #[allow(non_snake_case)]
     pub fn DELETE(&mut self, path: String, handler: HandlerFn) {
+    pub fn DELETE<F>(&mut self, path: String, handler: F)
+    where
+        F: Fn(Request) -> Response,
+    {
+
         todo!()
     }
 
@@ -123,5 +148,7 @@ impl Server {
                 }
             }
         }
+    fn start(&mut self) -> Result<(), ServerError> {
+        Err(ServerError::OtherError)
     }
 }

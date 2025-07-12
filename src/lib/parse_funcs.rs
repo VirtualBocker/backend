@@ -1,12 +1,12 @@
 use crate::lib::{
     req_res_structs::{BodyType, Method, Request, Response}, // для структур Request, Response, BodyType
-    server_errors::ServerError, // для структуры SeverError
-}; 
+    server_errors::ServerError,                             // для структуры SeverError
+};
 
 // функция публичная (pub)
 pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
     let mut lines = req_body.lines(); // возвращает итератором по подстрокам, т.е. либо по символам 1) \n
-    // либо 2) \r\n 
+    // либо 2) \r\n
     // &str — срез строки, представляет ссылку на участок UTF-8 в уже существующем String (или на статический литерал).
     let start_line = match lines.next() // вызываем метод .next у итератора lines
     {
@@ -78,113 +78,225 @@ pub fn deser_response(response: Response) -> String {
     String::default()
 }
 
-// Для запуска test нужно написать команду cargo 
+// Для запуска test нужно написать команду cargo
 #[cfg(test)]
-mod tests
-{
+mod tests {
+    use serde_json::json;
+
     use super::*;
 
     #[test]
-    fn first_test() -> Result<(),ServerError>
-    {
-        let req_raw:String = "GET /api/status HTTP/1.1\r\n\
+    fn parse_get_no_body() -> Result<(), ServerError> {
+        let req_raw: String = "GET /api/status HTTP/1.1\r\n\
 Host: api.example.com\r\n\
 Content-Type: application/json\r\n\
 \r\n"
             .to_string();
 
-        let real_rez:Request = parse_request(req_raw)?; 
+        let real_rez: Request = parse_request(req_raw)?;
 
-        let headers:Option<Vec<String>> = Some(vec![
+        let headers: Option<Vec<String>> = Some(vec![
             "Host: api.example.com".to_string(),
             "Content-Type: application/json".to_string(),
         ]);
 
-        let expected:Request = Request
-        {
+        let expected: Request = Request {
             method: Method::GET,
             path: "/api/status".to_string(),
             headers,
             body: None,
         };
 
-        assert_eq!(real_rez,expected);
+        assert_eq!(real_rez, expected);
 
         Ok(()) // Возвращаем 1ый аргумент из Result<(),ServerError>
-
     }
+
     #[test]
-    #[should_panic] // если в тесте Паника рассматривается как ожидаемый результат
-    fn example_test()
-    {
-        panic!("MY PANIC")
-    }
-} 
+    fn parse_get_localhost() -> Result<(), ServerError> {
+        let raw_reqwest = "GET / HTTP/1.1\r\n\
+            Host: localhost\r\n\
+            \r\n"
+            .to_string();
 
-// ПЕРЕДЕЛАТЬ В ТЕСТЫ
-/* 
-let raw_requests = vec![
-        "GET /api/status HTTP/1.1\r\n\
-Host: api.example.com\r\n\
-Content-Type: application/json\r\n\
-\r\n"
-            .to_string(),
-        "GET / HTTP/1.1\r\n\
-Host: localhost\r\n\
-\r\n"
-            .to_string(),
-        "POST /api/users HTTP/1.1\r\n\
-Host: api.example.com\r\n\
-Content-Type: application/json\r\n\
-Content-Length: 27\r\n\
-\r\n\
-{\"name\":\"alice\",\"age\":30}"
-            .to_string(),
-        "PUT /api/items/42 HTTP/1.1\r\n\
+        let real_result = parse_request(raw_reqwest)?;
+
+        let headers = vec!["Host: localhost".to_string()];
+
+        let expected_result = Request {
+            method: Method::GET,
+            path: "/".to_string(),
+            headers: Some(headers),
+            body: None,
+        };
+
+        assert_eq!(real_result, expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_post_json() -> Result<(), ServerError> {
+        let raw_reqwest = "POST /api/users HTTP/1.1\r\n\
+            Host: api.example.com\r\n\
+            Content-Type: application/json\r\n\
+            Content-Length: 27\r\n\
+            \r\n\
+            {\"name\":\"alice\",\"age\":30}"
+            .to_string();
+
+        let real_result = parse_request(raw_reqwest)?;
+
+        let headers = vec![
+            "Host: api.example.com".to_string(),
+            "Content-Type: application/json".to_string(),
+            "Content-Length: 27".to_string(),
+        ];
+
+        let json_body = json!({
+            "name": "alice",
+            "age": 30
+        });
+
+        let expected_result = Request {
+            method: Method::POST,
+            path: "/api/users".to_string(),
+            headers: Some(headers),
+            body: Some(BodyType::Json(json_body)),
+        };
+
+        assert_eq!(real_result, expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_put_json() -> Result<(), ServerError> {
+        let raw_reqwest = "PUT /api/items/42 HTTP/1.1\r\n\
 Host: api.example.com\r\n\
 Authorization: Bearer TOKEN123\r\n\
-Content-Type: application/json\r\n\ */
-//Accept: *\r\n\
-/*\r\n\
+Content-Type: application/json\r\n\
+Accept: *\r\n\
+\r\n\
 {\"price\":19.99,\"stock\":100}"
-            .to_string(),
-        "DELETE /api/items/42 HTTP/1.1\r\n\
+            .to_string();
+
+        let real_result = parse_request(raw_reqwest)?;
+
+        let headers = vec![
+            "Host: api.example.com".to_string(),
+            "Authorization: Bearer TOKEN123".to_string(),
+            "Content-Type: application/json".to_string(),
+            "Accept: *".to_string(),
+        ];
+
+        let json_body = json!({
+            "price": 19.99,
+            "stock": 100
+        });
+
+        let expected_result = Request {
+            method: Method::PUT,
+            path: "/api/items/42".to_string(),
+            headers: Some(headers),
+            body: Some(BodyType::Json(json_body)),
+        };
+
+        assert_eq!(real_result, expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_delete_no_body() -> Result<(), ServerError> {
+        let raw_reqwest = "DELETE /api/items/42 HTTP/1.1\r\n\
 Host: api.example.com\r\n\
-X-Debug-Mode: true\r\n\\
-r\n"
-        .to_string(),
-        "GET /search?q=rust+lang&sort=desc HTTP/2.0\r\n\
+X-Debug-Mode: true\r\n\
+\r\n"
+            .to_string();
+
+        let real_result = parse_request(raw_reqwest)?;
+
+        let headers = vec![
+            "Host: api.example.com".to_string(),
+            "X-Debug-Mode: true".to_string(),
+        ];
+
+        let expected_result = Request {
+            method: Method::DELETE,
+            path: "/api/items/42".to_string(),
+            headers: Some(headers),
+            body: None,
+        };
+
+        assert_eq!(real_result, expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_get_query() -> Result<(), ServerError> {
+        let raw_reqwest = "GET /search?q=rust+lang&sort=desc HTTP/2.0\r\n\
 Host: www.example.com\r\n\
 User-Agent: MyClient/1.0\r\n\
 Accept: text/html,application/xhtml+xml\r\n\
 Cookie: session=abcd1234; theme=dark\r\n\
 \r\n"
-            .to_string(),
-        "POST /login HTTP/1.1\r\n\
+            .to_string();
+
+        let real_result = parse_request(raw_reqwest)?;
+
+        let headers = vec![
+            "Host: www.example.com".to_string(),
+            "User-Agent: MyClient/1.0".to_string(),
+            "Accept: text/html,application/xhtml+xml".to_string(),
+            "Cookie: session=abcd1234; theme=dark".to_string(),
+        ];
+
+        let expected_result = Request {
+            method: Method::GET,
+            path: "/search?q=rust+lang&sort=desc".to_string(),
+            headers: Some(headers),
+            body: None,
+        };
+
+        assert_eq!(real_result, expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_form_request() -> Result<(), ServerError> {
+        let raw_reqwest = "POST /login HTTP/1.1\r\n\
 Host: auth.example.com\r\n\
 Content-Type: application/x-www-form-urlencoded\r\n\
 Content-Length: 29\r\n\
 Cookie: mobile=true\r\n\
 \r\n\
 username=foo&password=bar"
-            .to_string(),
-    ];
+            .to_string();
 
-    // 1 - нет
-    // 2 - нет
-    // 3 - да (Json)
-    // 4 - да (Json)
-    // 5 - нет
-    // 6 - нет
-    // 7 - да (Plain)
+        let real_result = parse_request(raw_reqwest)?;
 
-    for raw in &raw_requests {
-        match parse_request(raw.clone()) {
-            Ok(req) => println!("OK: {:?}", req),
-            Err(err) => eprintln!("Parse error: {:?}", err),
-        }
-    }*/
+        let headers = vec![
+            "Host: auth.example.com".to_string(),
+            "Content-Type: application/x-www-form-urlencoded".to_string(),
+            "Content-Length: 29".to_string(),
+            "Cookie: mobile=true".to_string(),
+        ];
 
+        let expected_result = Request {
+            method: Method::POST,
+            path: "/login".to_string(),
+            headers: Some(headers),
+            body: Some(BodyType::Plain("username=foo&password=bar".to_string())),
+        };
+
+        assert_eq!(real_result, expected_result);
+
+        Ok(())
+    }
+}
 
 /* Код который проверяет является ли body json файлом только в случае есть есть нужный заголовок content-type: application/jso
 let mut is_json = false;
@@ -215,4 +327,3 @@ else
     Some(value) => value,                          // если в parts нет строки, то вернется None и мы получим пустую строку
     None              => ""
 };*/
-

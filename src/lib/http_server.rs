@@ -1,13 +1,13 @@
-
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
-    net::TcpListener,};
+    net::TcpListener,
+};
 
 use crate::lib::{
-    req_res_structs::{Request, Response, Method},
+    parse_funcs::{deser_response, parse_request},
+    req_res_structs::{Method, Request, Response},
     server_errors::ServerError,
-    parse_funcs::{deser_response, parse_request}
 };
 
 type HandlerFn = fn(Request) -> Response;
@@ -46,7 +46,8 @@ impl Server {
     #[allow(non_snake_case)]
     pub fn GET(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
         let paths = self.handlers.get_mut(&Method::GET).unwrap(); // Получаем хэшмапу с путями и хэндлерами
-        if paths.contains_key(&path) { // в хэшмапе уже есть такой путь? лови ошибку
+        if paths.contains_key(&path) {
+            // в хэшмапе уже есть такой путь? лови ошибку
             return Err(ServerError::HandlerError(format!(
                 "GET handler with path '{path}' already registered!"
             )));
@@ -99,7 +100,8 @@ impl Server {
         // Он будет ожидать дальнейших подключений
         for stream in self.listener.incoming() {
             match stream {
-                Ok(mut stream) => { // если подключение по кайфу установлено и получили поток информации
+                Ok(mut stream) => {
+                    // если подключение по кайфу установлено и получили поток информации
                     let bufreader = BufReader::new(&stream); // создаём буферный читатель из нашего TCP потока
                     let raw_request: String = bufreader
                         .lines() // Итерируемся по строкам буфера
@@ -107,18 +109,21 @@ impl Server {
                         .take_while(|line| !line.is_empty()) // Обрабатываем итератор, пока не встретим пустую строку
                         .collect(); // Собираем всё в тип String
 
-                    if let Ok(request) = parse_request(raw_request) { // Если получилось нормально спарсить запрос
-                        if let Some(handler) = self.handlers // Если нашли хэндлер в нашей хэш-таблице
+                    if let Ok(request) = parse_request(raw_request) {
+                        // Если получилось нормально спарсить запрос
+                        if let Some(handler) = self
+                            .handlers // Если нашли хэндлер в нашей хэш-таблице
                             .get(&request.method)
                             .unwrap()
-                            .get(&request.path) {
-                                let response = deser_response(handler(request)); // Хэндлер сработал и получили ответ! Сразу его превратили в строку
-                                if let Err(e) = stream.write_all(response.as_bytes()) { // Отправили юзеру ответ!
-                                    eprintln!("Error sending response: {e}");
-                                };
-                            }
+                            .get(&request.path)
+                        {
+                            let response = deser_response(handler(request)); // Хэндлер сработал и получили ответ! Сразу его превратили в строку
+                            if let Err(e) = stream.write_all(response.as_bytes()) {
+                                // Отправили юзеру ответ!
+                                eprintln!("Error sending response: {e}");
+                            };
+                        }
                     }
-
                 }
                 Err(e) => {
                     eprintln!("Failed to establish connection: {e}") // :(

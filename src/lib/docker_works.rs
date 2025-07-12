@@ -68,7 +68,8 @@ MyNgnix	Up 12 hours	nginx	"/docker-entrypoint.sh""#.to_string();
         // считаем label
         if parts.len() < 4 {
             return Err(ContainerError::ParseError(format!(
-                "Unexpected columns (expected 4), got {} in {line}",parts.len()
+                "Unexpected columns (expected 4), got {} in {line}",
+                parts.len()
             )));
         }
 
@@ -90,7 +91,8 @@ MyNgnix	Up 12 hours	nginx	"/docker-entrypoint.sh""#.to_string();
                 "Dead" => ContainerStatus::Dead,
                 _other => {
                     return Err(ContainerError::ParseError(format!(
-                        "Unkown status {} in line {line}", parts[2]
+                        "Unkown status {} in line {line}",
+                        parts[2]
                     )));
                 }
             }
@@ -104,7 +106,8 @@ MyNgnix	Up 12 hours	nginx	"/docker-entrypoint.sh""#.to_string();
                 command_str[1..command_str.len() - 1].to_string() // считываем, не включая первый и последний символ, которые являются "".
             } else {
                 return Err(ContainerError::ParseError(format!(
-                    "Unknown command {} in line {line}",parts[3]
+                    "Unknown command {} in line {line}",
+                    parts[3]
                 )));
             }
         };
@@ -140,7 +143,7 @@ fn docker_action(action: &str, label: &str) -> Result<(), ContainerError> {
     // передаю по ссылке
     {
         return Err(ContainerError::DockerError(
-            "Invalid label. Use ASCII symbols, '-', '_'".to_string()
+            "Invalid label. Use ASCII symbols, '-', '_'".to_string(),
         ));
     }
 
@@ -193,7 +196,6 @@ pub fn start_container(label: String) -> Result<(), ContainerError> {
     docker_action("start", &label)
 }
 
-
 // ПЕРЕДЕЛАТЬ В ТЕСТЫ!!!!!!!!!!!
 
 /*
@@ -219,7 +221,6 @@ pub fn start_container(label: String) -> Result<(), ContainerError> {
     }
 
 */
-
 
 // Название ошибки не пишется не пишется -- убрать DockerError
 /*

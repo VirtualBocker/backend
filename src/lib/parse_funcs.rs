@@ -146,8 +146,11 @@ pub fn deser_response(response: Response) -> String {
         String::new()
     };
 
-    http_raw_response.push_str(&format!("Content-Length: {}\r\n", body_from_struct.len()));
+    if !(body_from_struct.len() == 0)
+    {
+        http_raw_response.push_str(&format!("Content-Length: {}\r\n", body_from_struct.len()));
     // макрос format! возвращает String -- в него можно добавить значение переменной
+    }
 
     // ------------ ЧАСТЬ №3 ------------ Формируем CRLF - пустую строку для http-raw-ответа
     http_raw_response += "\r\n"; // добавим перенос на новую строку
@@ -397,8 +400,8 @@ username=foo&password=bar"
         \r\n\
         Hello world!".to_string();
 
-        println!("expected result:\n{}",expected_result);
-        println!("real result:\n{}",real_result);
+        //println!("expected result:\n{}",expected_result);
+        //println!("real result:\n{}",real_result);
 
         assert_eq!(real_result,expected_result);
 
@@ -414,7 +417,10 @@ username=foo&password=bar"
                 "Host: api.example.com".to_string(),
                 "Location: https://example.com/new-resource".to_string(),
             ]),
-            body: Some(BodyType::Json(" ".to_string())),
+            body: Some(BodyType::Json(json!({
+                "price": 19.99,
+                "stock": 100
+            })))
         };
 
         let real_result: String = deser_response(response);
@@ -422,10 +428,36 @@ username=foo&password=bar"
         let expected_result:String = "HTTP/1.1 200 OK\r\n\
         Host: api.example.com\r\n\
         Location: https://example.com/new-resource\r\n\
-        Content-Type: text/plain\r\n\
-        Content-Length: 12\r\n\
+        Content-Type: application/json\r\n\
+        Content-Length: 27\r\n\
         \r\n\
-        Hello world!".to_string();
+        {\"price\":19.99,\"stock\":100}".to_string();
+
+        //println!("expected result:\n{}",expected_result);
+        //println!("real result:\n{}",real_result);
+
+        assert_eq!(real_result,expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn deser_response_test_with_no_json() -> Result<(), ServerError> {
+        let response:Response = Response {
+            response_code: 200,
+            headers: Some(vec![
+                "Host: api.example.com".to_string(),
+                "Location: https://example.com/new-resource".to_string(),
+            ]),
+            body: None,
+        };
+
+        let real_result: String = deser_response(response);
+
+        let expected_result:String = "HTTP/1.1 200 OK\r\n\
+        Host: api.example.com\r\n\
+        Location: https://example.com/new-resource\r\n\
+        \r\n".to_string();
 
         println!("expected result:\n{}",expected_result);
         println!("real result:\n{}",real_result);

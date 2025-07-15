@@ -20,7 +20,8 @@
                     "kind": "lib"
                 }
             },
-            "args": [],
+            "args": ["--nocapture"],
+            "console": "internalConsole",
             "cwd": "${workspaceFolder}"
         },
         {
@@ -39,6 +40,7 @@
                 }
             },
             "args": [],
+            "console": "internalConsole",
             "cwd": "${workspaceFolder}"
         },
         {
@@ -58,6 +60,7 @@
                 }
             },
             "args": [],
+            "console": "internalConsole",
             "cwd": "${workspaceFolder}"
         }
     ]

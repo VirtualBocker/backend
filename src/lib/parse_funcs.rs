@@ -74,10 +74,92 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
     Ok(ret_request) // Возвращаем успешный результат
 }
 
-pub fn deser_response(response: Response) -> String {
-    String::default()
+fn response_code_phrase(code: usize) -> &'static str {
+    match code {
+        200 => "OK",
+        202 => "Accepted",
+        404 => "Not Found",
+        500 => "Internal Server Error",
+        501 => "Not Implemented",
+        502 => "Bad Gateway",
+        _ => "",
+    }
 }
 
+pub fn deser_response(response: Response) -> String {
+    let mut http_raw_response: String = String::default(); // пустая строка
+    // ------------ ЧАСТЬ №1 ------------ Формируем Status-line для http-raw-ответа
+    http_raw_response += "HTTP/1.1 "; // += принимает &str, т.е. срез строки 
+    // => компилятор разворачивает это в вызов http_raw_response.push_str("HTTP/1.1");
+    // метод push.str копирует байты из &str (из среза) в конец буфера String
+    http_raw_response += &response.response_code.to_string();
+    // для usize вызываю .to_string() => получаю String
+    // беру ссылку на &String, т.е. превращаю в &str => добавляю к http_raw_response
+    http_raw_response += " ";
+    http_raw_response += response_code_phrase(response.response_code);
+    // функция возвращает &'static str, т.е. ссылку на литерал (например "OK")
+    // => добавляю к http_raw_response
+    http_raw_response += "\r\n"; // добавим перенос на новую строку
+
+    // ------------ ЧАСТЬ №2 ------------ Формируем Headers для http-raw-ответа
+    // if let ПАТТЕРН = ВЫРАЖЕНИЕ { … } else { … }
+    let headers_from_struct: Option<Vec<String>> = if let Some(headers) =
+        // получу в итоге Some(headers) или None
+        response.headers
+    {
+        // распакова response.headers: Option<Vec<String>>
+        Some(headers) // если там что-то есть, то верну Some(headers), т.е. упаковываю обратно в Some
+    } else {
+        None // если ничего нет, то None
+    };
+
+    if let Some(headers_vector) = headers_from_struct {
+        // if let Some(...) пытается распаковать headers_from_struct
+        // Если headers_from_struct == None, то весь if-блок будет пропущен
+        // Если headers_from_struct == Some(vec), то vec (типа Vec<String>) переходит в переменную headers_vector
+        for header in headers_vector {
+            // итератор header по вектору headers_vector
+            http_raw_response += &header; // добавим каждый разыменованный headers к сырому ответу
+            http_raw_response += "\r\n"; // добавим перенос на новую строку
+        }
+    };
+
+    // Формируем заголовок с количеством символов в body
+
+    let body_from_struct: String = if let Some(body) = response.body {
+        // если в response.body что-то есть, то это что-то присвоить body и выполнить match
+        match body {
+            // если body имеет тип BodyType::Plain, то
+            BodyType::Plain(text) => {
+                http_raw_response.push_str("Content-Type: text/plain\r\n");
+                text
+            }
+            // если body имеет тип BodyType::Json, то
+            BodyType::Json(value) => {
+                let json = serde_json::to_string(&value).unwrap();
+                http_raw_response.push_str("Content-Type: application/json\r\n");
+                json
+            }
+        }
+    } else {
+        // выполнится, если response.body == None
+        String::new()
+    };
+
+    if !(body_from_struct.len() == 0)
+    {
+        http_raw_response.push_str(&format!("Content-Length: {}\r\n", body_from_struct.len()));
+    // макрос format! возвращает String -- в него можно добавить значение переменной
+    }
+
+    // ------------ ЧАСТЬ №3 ------------ Формируем CRLF - пустую строку для http-raw-ответа
+    http_raw_response += "\r\n"; // добавим перенос на новую строку
+
+    // ------------ ЧАСТЬ №4 ------------ Формируем Body для http-raw-ответа
+    http_raw_response.push_str(&body_from_struct);
+
+    http_raw_response
+}
 // Для запуска test нужно написать команду cargo
 #[cfg(test)]
 mod tests {
@@ -293,6 +375,94 @@ username=foo&password=bar"
         };
 
         assert_eq!(real_result, expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn deser_response_test_plain_text() -> Result<(), ServerError> {
+        let response:Response = Response {
+            response_code: 200,
+            headers: Some(vec![
+                "Host: api.example.com".to_string(),
+                "Location: https://example.com/new-resource".to_string(),
+            ]),
+            body: Some(BodyType::Plain("Hello world!".to_string())),
+        };
+
+        let real_result: String = deser_response(response);
+
+        let expected_result:String = "HTTP/1.1 200 OK\r\n\
+        Host: api.example.com\r\n\
+        Location: https://example.com/new-resource\r\n\
+        Content-Type: text/plain\r\n\
+        Content-Length: 12\r\n\
+        \r\n\
+        Hello world!".to_string();
+
+        //println!("expected result:\n{}",expected_result);
+        //println!("real result:\n{}",real_result);
+
+        assert_eq!(real_result,expected_result);
+
+        Ok(())
+    }
+
+
+    #[test]
+    fn deser_response_test_with_json_file() -> Result<(), ServerError> {
+        let response:Response = Response {
+            response_code: 200,
+            headers: Some(vec![
+                "Host: api.example.com".to_string(),
+                "Location: https://example.com/new-resource".to_string(),
+            ]),
+            body: Some(BodyType::Json(json!({
+                "price": 19.99,
+                "stock": 100
+            })))
+        };
+
+        let real_result: String = deser_response(response);
+
+        let expected_result:String = "HTTP/1.1 200 OK\r\n\
+        Host: api.example.com\r\n\
+        Location: https://example.com/new-resource\r\n\
+        Content-Type: application/json\r\n\
+        Content-Length: 27\r\n\
+        \r\n\
+        {\"price\":19.99,\"stock\":100}".to_string();
+
+        //println!("expected result:\n{}",expected_result);
+        //println!("real result:\n{}",real_result);
+
+        assert_eq!(real_result,expected_result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn deser_response_test_with_no_json() -> Result<(), ServerError> {
+        let response:Response = Response {
+            response_code: 200,
+            headers: Some(vec![
+                "Host: api.example.com".to_string(),
+                "Location: https://example.com/new-resource".to_string(),
+            ]),
+            body: None,
+        };
+
+        let real_result: String = deser_response(response);
+
+        let expected_result:String = "HTTP/1.1 200 OK\r\n\
+        Host: api.example.com\r\n\
+        Location: https://example.com/new-resource\r\n\
+        \r\n".to_string();
+
+        println!("expected result:\n{}",expected_result);
+        println!("real result:\n{}",real_result);
+
+        assert_eq!(real_result,expected_result);
 
         Ok(())
     }

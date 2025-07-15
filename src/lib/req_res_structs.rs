@@ -2,8 +2,8 @@
 pub struct Request {
     pub method: Method,
     pub path: String,
-    pub headers: Option<Vec<String>>,
-    pub body: Option<BodyType>,
+    pub headers: Option<Vec<String>>, // Option - либо Some, либо None
+    pub body: Option<BodyType>,       // Option - либо Some, либо None
 }
 
 impl Default for Request {
@@ -17,10 +17,11 @@ impl Default for Request {
     }
 }
 
-pub struct Response {
-    response_code: usize,
-    headers: Option<Vec<String>>,
-    body: Option<BodyType>,
+#[derive(Debug, PartialEq)]
+pub struct Response { // при формировании экземпляра структуры не надо указывать заголовок Content-Type: text/plain\r\n или Content-Type: application/json\r\n
+    pub response_code: usize,
+    pub headers: Option<Vec<String>>,
+    pub body: Option<BodyType>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -36,4 +37,14 @@ pub enum Method {
     PUT,
     DELETE,
     OTHER,
+}
+
+
+pub enum WordResposeCode{
+    OK, // для 200
+    Created, // для 201
+    Accepted, // для 202
+    NotFound, // для 404
+
+
 }

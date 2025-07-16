@@ -5,12 +5,10 @@ use std::{
 };
 
 use crate::lib::{
-    parse_funcs::{deser_response, parse_request},
-    req_res_structs::{Method, Request, Response},
-    server_errors::ServerError,
+    parse_funcs::{deser_response, parse_request}, req_res_structs::{Method, Response}, request::Request, server_errors::ServerError
 };
 
-type HandlerFn = fn(Request) -> Response;
+type HandlerFn = fn(&Request) -> Response;
 // То есть, например, handle_home(req) принимает на вход Request и возвращает Response.
 
 #[derive(Debug)]
@@ -80,7 +78,7 @@ impl Server {
         path: String,
         handler: HandlerFn,
     ) -> Result<(), ServerError> {
-        let paths: &mut HashMap<String, fn(Request) -> Response> =
+        let paths: &mut HashMap<String, HandlerFn> =
             self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
@@ -292,19 +290,36 @@ impl Server {
                         .take_while(|line| !line.is_empty()) // Обрабатываем итератор, пока не встретим пустую строку
                         .collect(); // Собираем всё в тип String
 
-                    if let Ok(request) = parse_request(raw_request) {
+                    if let Ok(mut request) = parse_request(raw_request) {
                         // Если получилось нормально спарсить запрос
-                        if let Some(handler) = self
-                            .handlers // Если нашли хэндлер в нашей хэш-таблице
-                            .get(&request.method)
-                            .unwrap()
-                            .get(&request.path)
-                        {
-                            let response = deser_response(handler(request)); // Хэндлер сработал и получили ответ! Сразу его превратили в строку
-                            if let Err(e) = stream.write_all(response.as_bytes()) {
-                                // Отправили юзеру ответ!
-                                eprintln!("Error sending response: {e}");
-                            };
+
+                        let request_chunks: Vec<&str> = request.path.split("/").collect();
+
+                        for (key, value) in self.handlers.get(&request.method).unwrap() {
+                            
+                            let mut flag = false;
+
+                            for (i, key_chunk) in key.split("/").enumerate() {
+                                if request_chunks[i] == key_chunk || key_chunk.starts_with(":") {
+                                    let (_, id) = key_chunk.split_at(1);
+                                    request.rest_params.insert(id.to_string(), request_chunks[i].to_string());
+                                }
+                                else {
+                                    flag = true;
+                                    break;
+                                }
+                            }
+
+                            if flag {
+
+                                let response = value(&request);
+
+                                let deserialized_response = deser_response(response);
+
+                                stream.write_all(deserialized_response.as_bytes());
+
+                            }
+
                         }
                     }
                 }

@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use crate::lib::{
-    req_res_structs::{BodyType, Method, Request, Response}, // для структур Request, Response, BodyType
-    server_errors::ServerError,                             // для структуры SeverError
+    req_res_structs::{BodyType, Method,Response}, request::Request, server_errors::ServerError                             // для структуры SeverError
 };
 
 // функция публичная (pub)
@@ -69,6 +70,7 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
             Some(headers)
         },
         body,
+        rest_params: HashMap::new()
     };
 
     Ok(ret_request) // Возвращаем успешный результат
@@ -186,6 +188,7 @@ Content-Type: application/json\r\n\
             path: "/api/status".to_string(),
             headers,
             body: None,
+            rest_params: HashMap::new()
         };
 
         assert_eq!(real_rez, expected);
@@ -209,6 +212,7 @@ Content-Type: application/json\r\n\
             path: "/".to_string(),
             headers: Some(headers),
             body: None,
+            rest_params: HashMap::new()
         };
 
         assert_eq!(real_result, expected_result);
@@ -244,6 +248,7 @@ Content-Type: application/json\r\n\
             path: "/api/users".to_string(),
             headers: Some(headers),
             body: Some(BodyType::Json(json_body)),
+            rest_params: HashMap::new()
         };
 
         assert_eq!(real_result, expected_result);
@@ -281,6 +286,7 @@ Accept: *\r\n\
             path: "/api/items/42".to_string(),
             headers: Some(headers),
             body: Some(BodyType::Json(json_body)),
+            rest_params: HashMap::new()
         };
 
         assert_eq!(real_result, expected_result);
@@ -308,6 +314,7 @@ X-Debug-Mode: true\r\n\
             path: "/api/items/42".to_string(),
             headers: Some(headers),
             body: None,
+            rest_params: HashMap::new()
         };
 
         assert_eq!(real_result, expected_result);
@@ -339,6 +346,7 @@ Cookie: session=abcd1234; theme=dark\r\n\
             path: "/search?q=rust+lang&sort=desc".to_string(),
             headers: Some(headers),
             body: None,
+            rest_params: HashMap::new()
         };
 
         assert_eq!(real_result, expected_result);
@@ -371,6 +379,7 @@ username=foo&password=bar"
             path: "/login".to_string(),
             headers: Some(headers),
             body: Some(BodyType::Plain("username=foo&password=bar".to_string())),
+            rest_params: HashMap::new()
         };
 
         assert_eq!(real_result, expected_result);

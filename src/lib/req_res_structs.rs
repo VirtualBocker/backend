@@ -18,7 +18,7 @@ impl Default for Request {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Response { 
+pub struct Response {
     // при формировании экземпляра структуры не надо указывать:
     // 1. заголовок Content-Type: text/plain\r\n или Content-Type: application/json\r\n
     // 2. заголовок Content-Length: {number}
@@ -43,12 +43,9 @@ pub enum Method {
     OTHER,
 }
 
-
-pub enum WordResposeCode{
-    OK, // для 200
-    Created, // для 201
+pub enum WordResposeCode {
+    OK,       // для 200
+    Created,  // для 201
     Accepted, // для 202
     NotFound, // для 404
-
-
 }

@@ -469,8 +469,8 @@ username=foo&password=bar"
         \r\n"
             .to_string();
 
-        println!("expected result:\n{}", expected_result);
-        println!("real result:\n{}", real_result);
+        // println!("expected result:\n{}", expected_result);
+        // println!("real result:\n{}", real_result);
 
         assert_eq!(real_result, expected_result);
 

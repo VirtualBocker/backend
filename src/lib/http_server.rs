@@ -293,30 +293,17 @@ impl Server {
                     if let Ok(mut request) = parse_request(raw_request) {
                         // Если получилось нормально спарсить запрос
 
-                        let request_chunks: Vec<&str> = request.path.split("/").collect();
-
                         for (key, value) in self.handlers.get(&request.method).unwrap() {
                             
-                            let mut flag = false;
+                            if request.is_exact(key) {
 
-                            for (i, key_chunk) in key.split("/").enumerate() {
-                                if request_chunks[i] == key_chunk || key_chunk.starts_with(":") {
-                                    let (_, id) = key_chunk.split_at(1);
-                                    request.rest_params.insert(id.to_string(), request_chunks[i].to_string());
-                                }
-                                else {
-                                    flag = true;
-                                    break;
-                                }
-                            }
-
-                            if flag {
+                                request.parse_args(key);
 
                                 let response = value(&request);
 
                                 let deserialized_response = deser_response(response);
 
-                                stream.write_all(deserialized_response.as_bytes());
+                                let _ = stream.write_all(deserialized_response.as_bytes());
 
                             }
 

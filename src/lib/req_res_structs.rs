@@ -9,7 +9,7 @@ pub struct Response {
     pub body: Option<BodyType>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum BodyType {
     Json(serde_json::Value),
     Plain(String),

@@ -85,7 +85,7 @@ impl Server {
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
             return Err(ServerError::HandlerError(format!(
-                "{method:?} handler with path '{path}' already registered!"
+                "{method} handler with path '{path}' already registered!"
             )));
         }
 

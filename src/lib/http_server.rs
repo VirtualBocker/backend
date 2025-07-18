@@ -353,7 +353,7 @@ impl Server {
                             // .unwrap() достаёт ссылку на значение из 1-го уровня HashMap table (т.е. из Some) => &HashMap<String, HandlerFn>
 
                             // Далее происходит итерирование по 2му уровню HashMap table
-                            if request.is_exact(key) {
+                            if request.is_similar(key) {
                                 request.parse_args();
 
                                 let response = value(&request);

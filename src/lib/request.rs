@@ -42,8 +42,8 @@ impl Request {
     // ПРОВИРЯЕТ ЧТО ПУТЬ ИЗ РЕКВЕСТА И ПУТЬ ИЗ АРГУМЕНТА АНАЛОГИЧНЫ
     // НЕ СЧИТАЯ ВСЯКИХ ТАМ АРГУМЕНТОВ
     pub fn is_similar(&mut self, path: &str) -> bool {
-        let request_chunks: Vec<&str> = self.path.split("/").filter(|el| !el.is_empty()).collect();
-        let key_chunks: Vec<&str> = path.split("/").filter(|el| !el.is_empty()).collect();
+        let request_chunks: Vec<&str> = self.path.split("/").collect();
+        let key_chunks: Vec<&str> = path.split("/").collect();
 
         if request_chunks.len() != key_chunks.len() {
             return false;

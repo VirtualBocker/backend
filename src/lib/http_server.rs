@@ -17,7 +17,7 @@ type HandlerFn = fn(&Request) -> Response;
 #[derive(Debug)]
 pub struct Server {
     listener: TcpListener,
-    handlers: HashMap<Method, HashMap<String, HandlerFn>>,
+    handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
 }
 
 /*
@@ -63,7 +63,7 @@ impl Server {
             .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
 
         // Инициализируем нашу Hash-map таблицу, которая будет хранить handlers для различных путей
-        let mut handlers: HashMap<Method, HashMap<String, HandlerFn>> = HashMap::new();
+        let mut handlers: HashMap<Method, HashMap<&str, HandlerFn>> = HashMap::new();
 
         handlers.insert(Method::GET, HashMap::new());
         handlers.insert(Method::POST, HashMap::new());
@@ -78,10 +78,10 @@ impl Server {
     pub fn add_handler(
         &mut self,
         method: Method,
-        path: String,
+        path: &'static str,
         handler: HandlerFn,
     ) -> Result<(), ServerError> {
-        let paths: &mut HashMap<String, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
+        let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
             return Err(ServerError::HandlerError(format!(
@@ -95,23 +95,23 @@ impl Server {
     }
 
     #[allow(non_snake_case)]
-    pub fn GET(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::GET, path, handler)
+    pub fn GET(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::GET, path, handler).unwrap()
     }
 
     #[allow(non_snake_case)]
-    pub fn POST(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::POST, path, handler)
+    pub fn POST(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::POST, path, handler).unwrap()
     }
 
     #[allow(non_snake_case)]
-    pub fn PUT(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::PUT, path, handler)
+    pub fn PUT(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::PUT, path, handler).unwrap()
     }
 
     #[allow(non_snake_case)]
-    pub fn DELETE(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::DELETE, path, handler)
+    pub fn DELETE(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::DELETE, path, handler).unwrap()
     }
 
     /*

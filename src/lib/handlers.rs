@@ -3,7 +3,7 @@ use crate::lib::req_res_structs::{BodyType, Response}; // стрктура от�
 use crate::lib::request::Request; // структура запроса
 use serde_json;
 
-pub fn handler_return_all_containers(request: &Request) -> Response {
+pub fn handler_return_all_containers(_request: &Request) -> Response {
     // Нужно обработать request и вернуть Response
     // Данный handler должен возвращать весь вектор ContainerInfo
 
@@ -72,7 +72,7 @@ pub fn handler_return_all_containers(request: &Request) -> Response {
 
             resp
         }
-        Err(error) => {
+        Err(_) => {
             let resp: Response = Response {
                 // мой возвращаемый Response
                 response_code: 500,

@@ -65,14 +65,17 @@ impl Request {
     }*/
 
     // ПРОВИРЯЕТ ЧТО ПУТЬ ИЗ РЕКВЕСТА И ПУТЬ ИЗ АРГУМЕНТА АНАЛОГИЧНЫ
-    // НЕ СЧИТАЯ ВСЯКИХ ТАМ БЛЯТЬ АРГУМЕНТОВ
-    pub fn is_exact(&mut self, path: &str) -> bool {
+    // НЕ СЧИТАЯ ВСЯКИХ ТАМ АРГУМЕНТОВ
+    pub fn is_similar(&mut self, path: &str) -> bool {
         let request_chunks: Vec<&str> = self.path.split("/").collect();
-        for (i, key_chunk) in path.split("/").enumerate() {
-            if i == 0 {
-                continue;
-            }
-            if !key_chunk.starts_with(":") && !(key_chunk == request_chunks[i]) {
+        let key_chunks: Vec<&str> = path.split("/").collect();
+
+        if request_chunks.len() != key_chunks.len() {
+            return false;
+        };
+
+        for (i, key_chunk) in key_chunks.iter().enumerate() {
+            if !key_chunk.starts_with(":") && (*key_chunk != request_chunks[i]) {
                 return false;
             }
         }
@@ -102,8 +105,9 @@ mod tests {
             .rest_params
             .insert("id".to_string(), "label".to_string());
 
-        request.parse_args();
-        assert!(request.is_exact(path));
+
+        request.parse_args(path);
+        assert!(request.is_similar(path));
         assert_eq!(request, expected_request);
     }
 }

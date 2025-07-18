@@ -107,15 +107,7 @@ pub fn deser_response(response: Response) -> String {
 
     // ------------ ЧАСТЬ №2 ------------ Формируем Headers для http-raw-ответа
     // if let ПАТТЕРН = ВЫРАЖЕНИЕ { … } else { … }
-    let headers_from_struct: Option<Vec<String>> = if let Some(headers) =
-        // получу в итоге Some(headers) или None
-        response.headers
-    {
-        // распакова response.headers: Option<Vec<String>>
-        Some(headers) // если там что-то есть, то верну Some(headers), т.е. упаковываю обратно в Some
-    } else {
-        None // если ничего нет, то None
-    };
+    let headers_from_struct: Option<Vec<String>> = response.headers;
 
     if let Some(headers_vector) = headers_from_struct {
         // if let Some(...) пытается распаковать headers_from_struct
@@ -150,7 +142,7 @@ pub fn deser_response(response: Response) -> String {
         String::new()
     };
 
-    if !(body_from_struct.len() == 0) {
+    if !(body_from_struct.is_empty()) {
         http_raw_response.push_str(&format!("Content-Length: {}\r\n", body_from_struct.len()));
         // макрос format! возвращает String -- в него можно добавить значение переменной
     }

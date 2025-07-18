@@ -38,7 +38,7 @@ impl std::fmt::Display for ContainerStatus {
             ContainerStatus::Dead => "Dead",
         };
         // макрос write! записывает в форматер f строку s
-        write!(f, "{}", stroka)
+        write!(f, "{stroka}")
     }
 }
 

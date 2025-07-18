@@ -6,5 +6,6 @@ pub mod lib {
     pub mod parse_funcs;
     pub mod req_res_structs;
     pub mod request;
+    pub mod logger;
     pub mod server_errors;
 }

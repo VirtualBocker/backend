@@ -4,25 +4,17 @@ use crate::lib::{
     req_res_structs::{BodyType, Method, Response},
     request::Request,
     server_errors::ServerError, // для структуры SeverError
-    logger::Logger,
 };
 
 // функция публичная (pub)
 pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
-
-    let log = Logger::default();
-
     let mut lines = req_body.lines(); // возвращает итератором по подстрокам, т.е. либо по символам 1) \n
     // либо 2) \r\n
     // &str — срез строки, представляет ссылку на участок UTF-8 в уже существующем String (или на статический литерал).
     let start_line = match lines.next() // вызываем метод .next у итератора lines
     {
         Some(line) => line, // если есть строка, то присваиваем её переменной start_line
-        None             => 
-        {
-            log.error(&"No such string".to_string());
-            return Err(ServerError::OtherError) // если строки нет, то возвращаем ошибку
-        }
+        None             => return Err(ServerError::OtherError), // если строки нет, то возвращаем ошибку
     };
 
     // ------------ ЧАСТЬ №1 ------------

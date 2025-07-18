@@ -1,40 +1,40 @@
 pub mod logger_utils {
+	pub enum MessageType {
+		Debug,
+		Info,
+		Warn,
+		Error,
+		Critical,
+	}
 
-    pub enum MessageType {
-        Debug,
-        Info,
-        Warn,
-        Error,
-        Critical,
-    }
+	impl MessageType {
+		pub fn prefix (&self) -> String {
+			match self {
+				Self::Debug		=>	"[ DBUG ]".to_string(),
+				Self::Info		=>	"[ INFO ]".to_string(),
+				Self::Warn		=>	"[ WARN ]".to_string(),
+				Self::Error		=>	"[ ERRO ]".to_string(),
+				Self::Critical =>	"[ CRIT ]".to_string(),
+			}
+		}
+	}
 
-    impl MessageType {
-        pub fn prefix(&self) -> String {
-            match self {
-                Self::Debug => "[ DBUG ]".to_string(),
-                Self::Info => "[ INFO ]".to_string(),
-                Self::Warn => "[ WARN ]".to_string(),
-                Self::Error => "[ ERRO ]".to_string(),
-                Self::Critical => "[ CRIT ]".to_string(),
-            }
-        }
-    }
+	#[derive(Default, Copy, Clone, Debug)]
+	pub enum TimeFormat {
+		H12Format, // 12 часовой формат
+		#[default]
+		H24Format, // 24 часовой формат
+	}
 
-    #[derive(Default, Copy, Clone)]
-    pub enum TimeFormat {
-        H12Format, // 12 часовой формат
-        #[default]
-        H24Format, // 24 часовой формат
-    }
+	#[derive(Default, Copy, Clone, Debug)]
+	pub enum DateFormat {
+		Asian,		// yyyy/mm/dd
+		US,			// mm/dd/yyyy
+		Europe,		// dd.mm.yyyy
+		#[default]
+		ISO8601,	// yyyy-mm-dd
+	}
 
-    #[derive(Default, Copy, Clone)]
-    pub enum DateFormat {
-        Asian,  // yyyy/mm/dd
-        US,     // mm/dd/yyyy
-        Europe, // dd.mm.yyyy
-        #[default]
-        ISO8601, // yyyy-mm-dd
-    }
 }
 
 mod time_date_utils {
@@ -59,7 +59,7 @@ mod time_date_utils {
         }
     }
 }
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Logger {
     pub times: logger_utils::TimeFormat,
     pub dates: logger_utils::DateFormat,

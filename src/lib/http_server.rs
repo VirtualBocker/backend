@@ -31,6 +31,7 @@ const NOT_FOUND_RESPONSE: Response = Response {
 pub struct Server {
     listener: TcpListener,
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
+    log : Logger,
 }
 
 /*
@@ -84,8 +85,10 @@ impl Server {
         handlers.insert(Method::DELETE, HashMap::new());
         handlers.insert(Method::OTHER, HashMap::new());
 
+        let log = Logger::default();
+
         // Возвращаем наш объект сервера
-        Ok(Self { listener, handlers })
+        Ok(Self { listener, handlers, log })
     }
 
     pub fn add_handler(
@@ -94,21 +97,17 @@ impl Server {
         path: &'static str,
         handler: HandlerFn,
     ) -> Result<(), ServerError> {
-        let log = Logger::default();
-
         let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
-            log.error(&format!(
-                "{method} handler with path '{path}' already registered!"
-            ));
+            self.log.info(&format!("{method} handler with path '{path}' already registered!"));
             return Err(ServerError::HandlerError(format!(
                 "{method} handler with path '{path}' already registered!"
             )));
         }
 
         paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
-        log.info(&format!("Added {method} handled to path {path}"));
+        self.log.info(&format!("Added {method} handled to path {path}"));
         Ok(())
     }
 
@@ -296,8 +295,7 @@ impl Server {
     // 8. ???
     // 9. PROFIT!!!
     pub fn start(&self) {
-        let log = Logger::default(); // логгегер
-        log.info(&"Server started".to_string());
+        self.log.info(&"Server started".to_string());
 
         // Проходимся по бесконечному итератору входящих подключений
         // Почему бесконечный? Потому-что даже когда подключения закончатся,
@@ -369,7 +367,7 @@ impl Server {
                     }
                 }
                 Err(e) => {
-                    log.error(&format!("Failed to establish connection: {e}")); // :)
+                    self.log.warn(&format!("Failed to establish connection: {e}")); // :)
                     //eprintln!("Failed to establish connection: {e}") // :(
                 }
             }

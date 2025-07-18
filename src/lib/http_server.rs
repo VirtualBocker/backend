@@ -5,7 +5,11 @@ use std::{
 };
 
 use crate::lib::{
-    logger::{Logger}, parse_funcs::{deser_response, parse_request}, req_res_structs::{Method, Response}, request::Request, server_errors::ServerError
+    logger::Logger,
+    parse_funcs::{deser_response, parse_request},
+    req_res_structs::{Method, Response},
+    request::Request,
+    server_errors::ServerError,
 };
 
 type HandlerFn = fn(&Request) -> Response;
@@ -90,13 +94,14 @@ impl Server {
         path: &'static str,
         handler: HandlerFn,
     ) -> Result<(), ServerError> {
-
         let log = Logger::default();
 
         let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
-            log.error(&format!("{method} handler with path '{path}' already registered!"));
+            log.error(&format!(
+                "{method} handler with path '{path}' already registered!"
+            ));
             return Err(ServerError::HandlerError(format!(
                 "{method} handler with path '{path}' already registered!"
             )));
@@ -105,7 +110,6 @@ impl Server {
         paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
         log.info(&format!("Added {method} handled to path {path}"));
         Ok(())
-
     }
 
     #[allow(non_snake_case)]
@@ -292,7 +296,6 @@ impl Server {
     // 8. ???
     // 9. PROFIT!!!
     pub fn start(&self) {
-
         let log = Logger::default(); // логгегер
         log.info(&"Server started".to_string());
 
@@ -346,8 +349,20 @@ impl Server {
                         let mut found_path = false;
 
                         for (key, value) in self.handlers.get(&request.method).unwrap() {
+                            // self.handlers - это HashMap<Method, HashMap<String, HandlerFn>> (поле struct Server)
+
+                            // self.handlers.get(&request.method)
+                            // попытка найти на 1м уровне HashMap запись по ключу типа Method
+                            // например .get(POST) ищу на 1м уровне HashMap table ключ = Method::POST
+                            //           возвращает Option<&HashMap<String, HandlerFn>>
+                            //           если запись есть, возвращается Some(HashMap<String, HanlerFn>)
+                            //           если нет, возвращаю None
+
+                            // .unwrap() достаёт ссылку на значение из 1-го уровня HashMap table (т.е. из Some) => &HashMap<String, HandlerFn>
+
+                            // Далее происходит итерирование по 2му уровню HashMap table
                             if request.is_similar(key) {
-                                request.parse_args(key);
+                                request.parse_args();
 
                                 let response = value(&request);
                                 let deserialized_response = deser_response(response);

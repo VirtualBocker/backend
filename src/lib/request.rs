@@ -49,9 +49,6 @@ impl Request {
             return false;
         };
 
-        println!("Key chunks: {key_chunks:?}");
-        println!("Request chunks: {request_chunks:?}");
-
         for (i, key_chunk) in key_chunks.iter().enumerate() {
             if !key_chunk.starts_with(":") && (*key_chunk != request_chunks[i]) {
                 return false;

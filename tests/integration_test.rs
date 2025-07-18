@@ -30,29 +30,25 @@ fn get_containers() {
 
     let _ = server_start();
 
-    let response = reqwest::blocking::get(format!("http://{IP}/container/")).unwrap();
+    let response = minreq::get(format!("http://{IP}/container/")).send().unwrap();
 
-    assert_eq!(response.status().as_u16(), 200); // проверяем что ответ 200
-    assert_eq!(response.text().unwrap(), String::from("GET CONTAINERS!!!")) // проверяем что тело как в хендлере
+    assert_eq!(response.status_code, 200); // проверяем что ответ 200
+    assert_eq!(response.as_str().unwrap(), String::from("GET CONTAINERS!!!")) // проверяем что тело как в хендлере
     
 }
 
 #[test]
 fn post_containers_id() {
 
+    let response = minreq::post(format!("http://{IP}/container/256/reboot")).send().unwrap();
 
-    let client = reqwest::blocking::Client::new();
-
-    let response = client.post(format!("http://{IP}/container/256/reboot")).send().unwrap();
-
-    assert_eq!(response.status().as_u16(), 200);
-    assert_eq!(response.text().unwrap(), "Container ID is: 256\nRebooting...\nTEST");
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.as_str().unwrap(), "Container ID is: 256\nRebooting...\nTEST");
 }
 
 #[test]
 fn get_unknown_path() {
 
-    let response = reqwest::blocking::get(format!("http://{IP}/unknown/path")).unwrap();
-
-    assert_eq!(response.status().as_u16(), 404);
+    let response = minreq::get(format!("http://{IP}/unknown/path")).send().unwrap();
+    assert_eq!(response.status_code, 404);
 }

@@ -7,4 +7,4 @@ edition = "2024"
 serde_json = "1.0.140"
 
 [dev-dependencies]
-reqwest = { version = "0.12.22", features = ["blocking"] }
+minreq = "2.14.0"

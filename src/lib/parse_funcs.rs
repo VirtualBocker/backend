@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
 use crate::lib::{
+    logger::Logger,
     req_res_structs::{BodyType, Method, Response},
     request::Request,
     server_errors::ServerError, // для структуры SeverError
-    logger::Logger,
 };
 
 // функция публичная (pub)
 pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
-
     let log = Logger::default();
 
     let mut lines = req_body.lines(); // возвращает итератором по подстрокам, т.е. либо по символам 1) \n

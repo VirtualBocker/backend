@@ -20,7 +20,7 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
         Some(line) => line, // если есть строка, то присваиваем её переменной start_line
         None             => 
         {
-            log.error(&"No such string".to_string());
+            log.debug(&"No such string".to_string());
             return Err(ServerError::OtherError) // если строки нет, то возвращаем ошибку
         }
     };

@@ -319,15 +319,27 @@ impl Server {
                         // take_while останавливает итерацию, когда встретится пустая строка "". Сама пустая строка в результат не попадает
                         // + .take_while не изменяет строки
                         .collect(); // Собираем всё в тип String
-                        // собирает все оставшиеся элементы итератора и скеивает их в контейнер нужного типа (String, т.к. мы его явно задали при let raw_request: String)
-                        // у нас остаётся \r\n в конце каждой строки, т.к. мы вернули эту последовательность в map, а .take_while не изменяет строки
+                    // собирает все оставшиеся элементы итератора и скеивает их в контейнер нужного типа (String, т.к. мы его явно задали при let raw_request: String)
+                    // у нас остаётся \r\n в конце каждой строки, т.к. мы вернули эту последовательность в map, а .take_while не изменяет строки
                     // println!("{}",raw_request);
                     if let Ok(mut request) = parse_request(raw_request) {
                         // Если получилось нормально спарсить запрос
 
                         for (key, value) in self.handlers.get(&request.method).unwrap() {
+                            // self.handlers - это HashMap<Method, HashMap<String, HandlerFn>> (поле struct Server)
+
+                            // self.handlers.get(&request.method)
+                            // попытка найти на 1м уровне HashMap запись по ключу типа Method
+                            // например .get(POST) ищу на 1м уровне HashMap table ключ = Method::POST
+                            //           возвращает Option<&HashMap<String, HandlerFn>>
+                            //           если запись есть, возвращается Some(HashMap<String, HanlerFn>)
+                            //           если нет, возвращаю None
+
+                            // .unwrap() достаёт ссылку на значение из 1-го уровня HashMap table (т.е. из Some) => &HashMap<String, HandlerFn>
+
+                            // Далее происходит итерирование по 2му уровню HashMap table
                             if request.is_exact(key) {
-                                request.parse_args(key);
+                                request.parse_args();
 
                                 let response = value(&request);
 
@@ -338,8 +350,8 @@ impl Server {
                         }
                     }
                 }
-                Err(e) => {
-                    eprintln!("Failed to establish connection: {e}") // :(
+                Err(error) => {
+                    eprintln!("Failed to establish connection: {error}") // :(
                 }
             }
         }

@@ -24,19 +24,29 @@ impl Default for Request {
 }
 
 impl Request {
-    pub fn parse_args(&mut self, path: &str) {
-        let request_chunks: Vec<&str> = self.path.split("/").collect();
+    // функция для парсинга (т.е. разбиения) пути по составляющим
+    // /container/:id/reboot разбивается на [ container, :id, reboot ]
+    pub fn parse_args(&mut self) {
+        let mut request_chunks: Vec<&str> = self.path.split("/").collect(); // /container/:id/reboot разбивается на ["", "container", ":id", "reboot"]
+        request_chunks.remove(0); // убираю пустой сегмент "", имеем => ["container", ":id", "reboot"]
 
-        for (i, key_chunk) in path.split("/").enumerate() {
-            if i == 0 {
-                continue;
+        for (i, key_chunk) in request_chunks.iter().enumerate() {
+            // .iter - получаю итератор, .enumerate - добавляю текущему итератору counter (счетчик)
+            if key_chunk.starts_with(":") {
+                // подходит key_chunk = ":id"
+                let (_, id) = key_chunk.split_at(1); // получаем: ":" и "id" (":" выкидываем т.к. первый аргумент _)
+                self.rest_params
+                    .insert(id.to_string(), request_chunks[i].to_string()); // вставляем в Hash-table<String, String> элемент <1, id>
             }
+        }
+        /*
+        for (i, key_chunk) in path.split("/").enumerate() {
             if key_chunk.starts_with(":") {
                 let (_, id) = key_chunk.split_at(1);
                 self.rest_params
                     .insert(id.to_string(), request_chunks[i].to_string());
             }
-        }
+        }*/
     }
 
     // ПРОВИРЯЕТ ЧТО ПУТЬ ИЗ РЕКВЕСТА И ПУТЬ ИЗ АРГУМЕНТА АНАЛОГИЧНЫ
@@ -77,7 +87,7 @@ mod tests {
             .rest_params
             .insert("id".to_string(), "label".to_string());
 
-        request.parse_args(path);
+        request.parse_args();
         assert!(request.is_exact(path));
         assert_eq!(request, expected_request);
     }

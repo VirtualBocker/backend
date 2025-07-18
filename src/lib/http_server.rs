@@ -5,16 +5,31 @@ use std::{
 };
 
 use crate::lib::{
-    parse_funcs::{deser_response, parse_request}, req_res_structs::{Method, Response}, request::Request, server_errors::ServerError
+    parse_funcs::{deser_response, parse_request},
+    req_res_structs::{Method, Response},
+    request::Request,
+    server_errors::ServerError,
 };
 
 type HandlerFn = fn(&Request) -> Response;
 // То есть, например, handle_home(req) принимает на вход Request и возвращает Response.
 
+const BAD_REQUEST_RESPONSE: Response = Response {
+    response_code: 404,
+    headers: None,
+    body: None,
+};
+
+const NOT_FOUND_RESPONSE: Response = Response {
+    response_code: 404,
+    headers: None,
+    body: None,
+};
+
 #[derive(Debug)]
 pub struct Server {
     listener: TcpListener,
-    handlers: HashMap<Method, HashMap<String, HandlerFn>>,
+    handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
 }
 
 /*
@@ -49,7 +64,7 @@ handlers                          // HashMap<Method, …>
 */
 
 impl Server {
-    // Новый экземплеря сервера
+    // Новый экземпляр сервера
     pub fn new(addr: &str) -> Result<Server, ServerError> {
         // Привязываем наш сервак на адрес "addr", чтобы он считывал
         // подключения, которые приходят на него
@@ -60,7 +75,7 @@ impl Server {
             .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
 
         // Инициализируем нашу Hash-map таблицу, которая будет хранить handlers для различных путей
-        let mut handlers: HashMap<Method, HashMap<String, HandlerFn>> = HashMap::new();
+        let mut handlers: HashMap<Method, HashMap<&str, HandlerFn>> = HashMap::new();
 
         handlers.insert(Method::GET, HashMap::new());
         handlers.insert(Method::POST, HashMap::new());
@@ -75,11 +90,10 @@ impl Server {
     pub fn add_handler(
         &mut self,
         method: Method,
-        path: String,
+        path: &'static str,
         handler: HandlerFn,
     ) -> Result<(), ServerError> {
-        let paths: &mut HashMap<String, HandlerFn> =
-            self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
+        let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
             return Err(ServerError::HandlerError(format!(
@@ -93,23 +107,23 @@ impl Server {
     }
 
     #[allow(non_snake_case)]
-    pub fn GET(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::GET, path, handler)
+    pub fn GET(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::GET, path, handler).unwrap()
     }
 
     #[allow(non_snake_case)]
-    pub fn POST(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::POST, path, handler)
+    pub fn POST(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::POST, path, handler).unwrap()
     }
 
     #[allow(non_snake_case)]
-    pub fn PUT(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::PUT, path, handler)
+    pub fn PUT(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::PUT, path, handler).unwrap()
     }
 
     #[allow(non_snake_case)]
-    pub fn DELETE(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        self.add_handler(Method::DELETE, path, handler)
+    pub fn DELETE(&mut self, path: &'static str, handler: HandlerFn) {
+        self.add_handler(Method::DELETE, path, handler).unwrap()
     }
 
     /*
@@ -284,30 +298,65 @@ impl Server {
                 Ok(mut stream) => {
                     // если подключение по кайфу установлено и получили поток информации
                     let bufreader = BufReader::new(&stream); // создаём буферный читатель из нашего TCP потока
-                    let raw_request: String = bufreader
-                        .lines() // Итерируемся по строкам буфера
-                        .map(|result| result.unwrap() + "\n") // К каждой строке добавляем символ новой строки
-                        .take_while(|line| !line.is_empty()) // Обрабатываем итератор, пока не встретим пустую строку
-                        .collect(); // Собираем всё в тип String
 
+                    /*
+                    cap -- сколько байт сейчас лежит в буфере
+                    pos -- картека, индекс следующего байта в данном диапазоне
+
+                    BufReader<R> хранит в себе следующие компоненты:
+
+                    1. Внутренний ридер (inner: R)
+                    2. Буфер (buf: Vec<u8>)
+                    3. Индексы состояния (pos: usize и cap: usize)
+
+                    Внутренний ридер -- это источник информации. Если в буфере пусто, тогда cap = 0, а pos = 0. Т.к. pos>=cap , я запрошу информацию от внутреннего ридера. При этом он оценит количество байт и это будет моё новое значение cap (т.е. я могу не заполнить весь буфер)
+
+                    Кареткой я буду считывать до тех пор, пока вновь не выполнится pos>=cap.
+                    BufReader
+                    ├─ inner: TcpStream { … }
+                    ├─ buf: Vec<u8> (capacity 8192)
+                    └─ [raw]: (pos: 0, cap: 0)*/
+                    let raw_request: String = bufreader
+                        .lines() // возвращает итератор по строкам из буферизированного читателя (ридера)
+                        // итератор выдает элементы типа Result<String, std::io::Error>
+                        // удаляет символ /n. Если перед ним был /r тоже удаляет
+                        .map(|result| result.unwrap() + "\r\n") // кратко: к каждой строке добавляем символ новой строки ("\r\n")
+                        /* подробно: result.unwrap() извлекает String из Ok(String) или ломается, если при чтении произошел Error
+                        т.е. распаковываем успешный результат чтения строки + добавляем \r\n, т.к. .lines убирает \r\n
+                        в итоге получаем после .map преобразование итератора:
+                        Исходный итератор был: Iterator<Item = Result<String, std::io::Error>>
+                        В результате стал: Iterator<Item = String> */
+                        .take_while(|line| !line.trim_end().is_empty()) // Обрабатываем итератор, пока не встретим пустую строку
+                        // т.е. берем строки из итератора, пока не встретим пустую строку, т.е. CRLF-строку в raw-HTTP request (т.е. пока не встретим \r\n, которая означает конец заголовков)
+                        // take_while останавливает итерацию, когда встретится пустая строка "". Сама пустая строка в результат не попадает
+                        // + .take_while не изменяет строки
+                        .collect(); // Собираем всё в тип String
+                    // собирает все оставшиеся элементы итератора и скеивает их в контейнер нужного типа (String, т.к. мы его явно задали при let raw_request: String)
+                    // у нас остаётся \r\n в конце каждой строки, т.к. мы вернули эту последовательность в map, а .take_while не изменяет строки
+                    // println!("{}",raw_request);
                     if let Ok(mut request) = parse_request(raw_request) {
                         // Если получилось нормально спарсить запрос
 
-                        for (key, value) in self.handlers.get(&request.method).unwrap() {
-                            
-                            if request.is_exact(key) {
+                        let mut found_path = false;
 
+                        for (key, value) in self.handlers.get(&request.method).unwrap() {
+                            if request.is_similar(key) {
                                 request.parse_args(key);
 
                                 let response = value(&request);
-
                                 let deserialized_response = deser_response(response);
 
                                 let _ = stream.write_all(deserialized_response.as_bytes());
-
+                                found_path = true;
+                                break;
                             }
-
                         }
+
+                        if !found_path {
+                            let _ = stream.write_all(deser_response(NOT_FOUND_RESPONSE).as_bytes());
+                        }
+                    } else {
+                        let _ = stream.write_all(deser_response(BAD_REQUEST_RESPONSE).as_bytes());
                     }
                 }
                 Err(e) => {

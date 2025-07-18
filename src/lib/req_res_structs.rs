@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[derive(Debug, PartialEq)]
 pub struct Response {
     // при формировании экземпляра структуры не надо указывать:
@@ -25,13 +23,14 @@ pub enum Method {
     DELETE,
     OTHER,
 }
-impl fmt::Display for Method { // объявляем реализацию трейта Display из модуля std::fmt
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { 
+impl std::fmt::Display for Method {
+    // объявляем реализацию трейта Display из модуля std::fmt
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // &self - само значение Method (GET, POST, PUT, DELETE, OTHER)
         // f: &mut fmt::Formatter<'_> -- приемник вывода. Внутри него хранятся все параметры форматирования (ширина, выравнивание, точность) + буфер, куда нужно записать результат
         // сопоставим каждый возможный self с нужным вариантов
         // fmt::Result -- это псевдоним для Result<(), std::fmt::Error>, т.е. это тоже самое. Если все успешно -- вернем Ok(()). Если ошибка - вернем Err(...).
-        let stroka:&'static str = match self{
+        let stroka: &'static str = match self {
             Method::GET => "GET",
             Method::POST => "POST",
             Method::PUT => "PUT",
@@ -39,13 +38,6 @@ impl fmt::Display for Method { // объявляем реализацию тре
             Method::OTHER => "OTHER",
         };
         // макрос write! записывает в форматер f строку s
-        write!(f, "{}", stroka)
+        write!(f, "{stroka}")
     }
-}
-
-pub enum WordResposeCode {
-    OK,       // для 200
-    Created,  // для 201
-    Accepted, // для 202
-    NotFound, // для 404
 }

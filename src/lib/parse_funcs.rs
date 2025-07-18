@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::lib::{
-    req_res_structs::{BodyType, Method,Response}, request::Request, server_errors::ServerError                             // для структуры SeverError
+    req_res_structs::{BodyType, Method, Response},
+    request::Request,
+    server_errors::ServerError, // для структуры SeverError
 };
 
 // функция публичная (pub)
@@ -50,7 +52,7 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
         headers.push(line.to_string()); // если найденная строка не пустая, конвертируем в String и кладём в вектор headers
     }
 
-    let body_str = lines.collect::<Vec<&str>>().join("\r\n");
+    let body_str: String = lines.collect::<Vec<&str>>().join("\r\n");
 
     let body: Option<BodyType> = if body_str.is_empty() {
         None // Если строка пустая, то ничего -- None
@@ -70,9 +72,9 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
             Some(headers)
         },
         body,
-        rest_params: HashMap::new()
+        rest_params: HashMap::new(),
     };
-
+    // println!("{:?}", ret_request);
     Ok(ret_request) // Возвращаем успешный результат
 }
 
@@ -105,15 +107,7 @@ pub fn deser_response(response: Response) -> String {
 
     // ------------ ЧАСТЬ №2 ------------ Формируем Headers для http-raw-ответа
     // if let ПАТТЕРН = ВЫРАЖЕНИЕ { … } else { … }
-    let headers_from_struct: Option<Vec<String>> = if let Some(headers) =
-        // получу в итоге Some(headers) или None
-        response.headers
-    {
-        // распакова response.headers: Option<Vec<String>>
-        Some(headers) // если там что-то есть, то верну Some(headers), т.е. упаковываю обратно в Some
-    } else {
-        None // если ничего нет, то None
-    };
+    let headers_from_struct: Option<Vec<String>> = response.headers;
 
     if let Some(headers_vector) = headers_from_struct {
         // if let Some(...) пытается распаковать headers_from_struct
@@ -148,7 +142,7 @@ pub fn deser_response(response: Response) -> String {
         String::new()
     };
 
-    if !(body_from_struct.len() == 0) {
+    if !(body_from_struct.is_empty()) {
         http_raw_response.push_str(&format!("Content-Length: {}\r\n", body_from_struct.len()));
         // макрос format! возвращает String -- в него можно добавить значение переменной
     }
@@ -188,7 +182,7 @@ Content-Type: application/json\r\n\
             path: "/api/status".to_string(),
             headers,
             body: None,
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         };
 
         assert_eq!(real_rez, expected);
@@ -212,7 +206,7 @@ Content-Type: application/json\r\n\
             path: "/".to_string(),
             headers: Some(headers),
             body: None,
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         };
 
         assert_eq!(real_result, expected_result);
@@ -248,7 +242,7 @@ Content-Type: application/json\r\n\
             path: "/api/users".to_string(),
             headers: Some(headers),
             body: Some(BodyType::Json(json_body)),
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         };
 
         assert_eq!(real_result, expected_result);
@@ -286,7 +280,7 @@ Accept: *\r\n\
             path: "/api/items/42".to_string(),
             headers: Some(headers),
             body: Some(BodyType::Json(json_body)),
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         };
 
         assert_eq!(real_result, expected_result);
@@ -314,7 +308,7 @@ X-Debug-Mode: true\r\n\
             path: "/api/items/42".to_string(),
             headers: Some(headers),
             body: None,
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         };
 
         assert_eq!(real_result, expected_result);
@@ -346,7 +340,7 @@ Cookie: session=abcd1234; theme=dark\r\n\
             path: "/search?q=rust+lang&sort=desc".to_string(),
             headers: Some(headers),
             body: None,
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         };
 
         assert_eq!(real_result, expected_result);
@@ -379,7 +373,7 @@ username=foo&password=bar"
             path: "/login".to_string(),
             headers: Some(headers),
             body: Some(BodyType::Plain("username=foo&password=bar".to_string())),
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         };
 
         assert_eq!(real_result, expected_result);

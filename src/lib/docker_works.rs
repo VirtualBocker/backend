@@ -2,10 +2,10 @@
 pub struct ContainerInfo
 // информация о контейнере
 {
-    label: String,           // название контейнера NAMES
-    status: ContainerStatus, // статус контейнера STATUS
-    command: String,         // запущенная команда COMMAND
-    image: String,           // образ дистрибутива IMAGE
+    pub label: String,           // название контейнера NAMES
+    pub status: ContainerStatus, // статус контейнера STATUS
+    pub command: String,         // запущенная команда COMMAND
+    pub image: String,           // образ дистрибутива IMAGE
 }
 
 #[derive(Debug)]
@@ -19,6 +19,27 @@ pub enum ContainerStatus
     Restarting,        // Демон перезапускает контейнер согласно --restart
     RemovalInProgress, // контейнер остановлен, docker удаляет его данные
     Dead,              // контейнер-зомби: процесс убит, но демон не смог корректно удалить ресурс
+}
+// реализация пользовательского вывода
+impl std::fmt::Display for ContainerStatus {
+    // объявляем реализацию трейта Display из модуля std::fmt
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // &self - само значение ContainerStatus
+        // f: &mut fmt::Formatter<'_> -- приемник вывода. Внутри него хранятся все параметры форматирования (ширина, выравнивание, точность) + буфер, куда нужно записать результат
+        // сопоставим каждый возможный self с нужным вариантов
+        // fmt::Result -- это псевдоним для Result<(), std::fmt::Error>, т.е. это тоже самое. Если все успешно -- вернем Ok(()). Если ошибка - вернем Err(...).
+        let stroka: &'static str = match self {
+            ContainerStatus::Exited => "Exited",
+            ContainerStatus::Up => "Up",
+            ContainerStatus::Created => "Created",
+            ContainerStatus::Paused => "Paused",
+            ContainerStatus::Restarting => "Restarting",
+            ContainerStatus::RemovalInProgress => "RemovalInProgress",
+            ContainerStatus::Dead => "Dead",
+        };
+        // макрос write! записывает в форматер f строку s
+        write!(f, "{stroka}")
+    }
 }
 
 #[derive(Debug)]

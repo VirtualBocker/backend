@@ -8,7 +8,7 @@ pub struct Request {
     pub path: String,
     pub headers: Option<Vec<String>>, // Option - либо Some, либо None
     pub body: Option<BodyType>,       // Option - либо Some, либо None
-    pub rest_params: HashMap<String, String>
+    pub rest_params: HashMap<String, String>,
 }
 
 impl Default for Request {
@@ -18,32 +18,39 @@ impl Default for Request {
             path: String::default(),
             headers: None,
             body: None,
-            rest_params: HashMap::new()
+            rest_params: HashMap::new(),
         }
     }
 }
 
 impl Request {
     pub fn parse_args(&mut self, path: &str) {
-
         let request_chunks: Vec<&str> = self.path.split("/").collect();
 
         for (i, key_chunk) in path.split("/").enumerate() {
-            if i == 0 { continue; }
+            if i == 0 {
+                continue;
+            }
             if key_chunk.starts_with(":") {
                 let (_, id) = key_chunk.split_at(1);
-                self.rest_params.insert(id.to_string(), request_chunks[i].to_string());
+                self.rest_params
+                    .insert(id.to_string(), request_chunks[i].to_string());
             }
         }
     }
 
     // ПРОВИРЯЕТ ЧТО ПУТЬ ИЗ РЕКВЕСТА И ПУТЬ ИЗ АРГУМЕНТА АНАЛОГИЧНЫ
-    // НЕ СЧИТАЯ ВСЯКИХ ТАМ БЛЯТЬ АРГУМЕНТОВ 
-    pub fn is_exact(&mut self, path: &str) -> bool {
-        let request_chunks: Vec<&str> = self.path.split("/").collect();
-        for (i, key_chunk) in path.split("/").enumerate() {
-            if i == 0 { continue; }
-            if !key_chunk.starts_with(":") && !(key_chunk == request_chunks[i]) {
+    // НЕ СЧИТАЯ ВСЯКИХ ТАМ АРГУМЕНТОВ
+    pub fn is_similar(&mut self, path: &str) -> bool {
+        let request_chunks: Vec<&str> = self.path.split("/").filter(|el| !el.is_empty()).collect();
+        let key_chunks: Vec<&str> = path.split("/").filter(|el| !el.is_empty()).collect();
+
+        if request_chunks.len() != key_chunks.len() {
+            return false;
+        };
+
+        for (i, key_chunk) in key_chunks.iter().enumerate() {
+            if !key_chunk.starts_with(":") && (*key_chunk != request_chunks[i]) {
                 return false;
             }
         }
@@ -69,11 +76,12 @@ mod tests {
         };
 
         let mut expected_request = request.clone();
-        expected_request.rest_params.insert("id".to_string(), "label".to_string());
+        expected_request
+            .rest_params
+            .insert("id".to_string(), "label".to_string());
 
         request.parse_args(path);
-        assert!(request.is_exact(path));
+        assert!(request.is_similar(path));
         assert_eq!(request, expected_request);
     }
-
 }

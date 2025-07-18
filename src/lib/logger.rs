@@ -20,14 +20,14 @@ pub mod logger_utils {
 		}
 	}
 
-	#[derive(Default, Copy, Clone)]
+	#[derive(Default, Copy, Clone, Debug)]
 	pub enum TimeFormat {
 		H12Format, // 12 часовой формат
 		#[default]
 		H24Format, // 24 часовой формат
 	}
 
-	#[derive(Default, Copy, Clone)]
+	#[derive(Default, Copy, Clone, Debug)]
 	pub enum DateFormat {
 		Asian,		// yyyy/mm/dd
 		US,			// mm/dd/yyyy
@@ -60,7 +60,7 @@ mod time_date_utils {
 		}
 	}
 }
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Logger {
 	pub times : logger_utils::TimeFormat,
 	pub dates : logger_utils::DateFormat,

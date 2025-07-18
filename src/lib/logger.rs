@@ -1,40 +1,39 @@
 pub mod logger_utils {
-	pub enum MessageType {
-		Debug,
-		Info,
-		Warn,
-		Error,
-		Critical,
-	}
+    pub enum MessageType {
+        Debug,
+        Info,
+        Warn,
+        Error,
+        Critical,
+    }
 
-	impl MessageType {
-		pub fn prefix (&self) -> String {
-			match self {
-				Self::Debug		=>	"[ DBUG ]".to_string(),
-				Self::Info		=>	"[ INFO ]".to_string(),
-				Self::Warn		=>	"[ WARN ]".to_string(),
-				Self::Error		=>	"[ ERRO ]".to_string(),
-				Self::Critical =>	"[ CRIT ]".to_string(),
-			}
-		}
-	}
+    impl MessageType {
+        pub fn prefix(&self) -> String {
+            match self {
+                Self::Debug => "[ DBUG ]".to_string(),
+                Self::Info => "[ INFO ]".to_string(),
+                Self::Warn => "[ WARN ]".to_string(),
+                Self::Error => "[ ERRO ]".to_string(),
+                Self::Critical => "[ CRIT ]".to_string(),
+            }
+        }
+    }
 
-	#[derive(Default, Copy, Clone, Debug)]
-	pub enum TimeFormat {
-		H12Format, // 12 часовой формат
-		#[default]
-		H24Format, // 24 часовой формат
-	}
+    #[derive(Default, Copy, Clone, Debug)]
+    pub enum TimeFormat {
+        H12Format, // 12 часовой формат
+        #[default]
+        H24Format, // 24 часовой формат
+    }
 
-	#[derive(Default, Copy, Clone, Debug)]
-	pub enum DateFormat {
-		Asian,		// yyyy/mm/dd
-		US,			// mm/dd/yyyy
-		Europe,		// dd.mm.yyyy
-		#[default]
-		ISO8601,	// yyyy-mm-dd
-	}
-
+    #[derive(Default, Copy, Clone, Debug)]
+    pub enum DateFormat {
+        Asian,  // yyyy/mm/dd
+        US,     // mm/dd/yyyy
+        Europe, // dd.mm.yyyy
+        #[default]
+        ISO8601, // yyyy-mm-dd
+    }
 }
 
 mod time_date_utils {
@@ -75,16 +74,28 @@ impl Logger {
                 _type.prefix()
             ),
             logger_utils::MessageType::Debug => {
-                println!("🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
+                println!(
+                    "🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}",
+                    _type.prefix()
+                )
             }
             logger_utils::MessageType::Error => {
-                eprintln!("💥 \x1b[91m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
+                eprintln!(
+                    "💥 \x1b[91m{}\x1b[0m {date} {time} :: {_msg}",
+                    _type.prefix()
+                )
             }
             logger_utils::MessageType::Info => {
-                println!("🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
+                println!(
+                    "🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}",
+                    _type.prefix()
+                )
             }
             logger_utils::MessageType::Warn => {
-                println!("⚠️ \x1b[33m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
+                println!(
+                    "⚠️ \x1b[33m{}\x1b[0m {date} {time} :: {_msg}",
+                    _type.prefix()
+                )
             }
         };
     }
@@ -120,8 +131,7 @@ impl Logger {
 
 ";
 
-    println!("{MOTD}");
-
+        println!("{MOTD}");
     }
 }
 

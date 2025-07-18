@@ -31,7 +31,7 @@ const NOT_FOUND_RESPONSE: Response = Response {
 pub struct Server {
     listener: TcpListener,
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
-    log : Logger,
+    log: Logger,
 }
 
 /*
@@ -88,7 +88,11 @@ impl Server {
         let log = Logger::default();
 
         // Возвращаем наш объект сервера
-        Ok(Self { listener, handlers, log })
+        Ok(Self {
+            listener,
+            handlers,
+            log,
+        })
     }
 
     pub fn add_handler(
@@ -100,14 +104,17 @@ impl Server {
         let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
-            self.log.info(&format!("{method} handler with path '{path}' already registered!"));
+            self.log.info(&format!(
+                "{method} handler with path '{path}' already registered!"
+            ));
             return Err(ServerError::HandlerError(format!(
                 "{method} handler with path '{path}' already registered!"
             )));
         }
 
         paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
-        self.log.info(&format!("📌 Handler registered: {method} {path}"));
+        self.log
+            .info(&format!("📌 Handler registered: {method} {path}"));
         Ok(())
     }
 
@@ -344,7 +351,6 @@ impl Server {
                     // println!("{}",raw_request);
                     match parse_request(raw_request) {
                         // Если получилось нормально спарсить запрос
-
                         Ok(mut request) => {
                             let mut found_path = false;
 
@@ -354,7 +360,10 @@ impl Server {
 
                                     let response = value(&request);
 
-                                    self.log.info(&format!("Handler triggered for route: {} {}", request.method, request.path));
+                                    self.log.info(&format!(
+                                        "Handler triggered for route: {} {}",
+                                        request.method, request.path
+                                    ));
 
                                     let deserialized_response = deser_response(response);
 
@@ -365,17 +374,20 @@ impl Server {
                             }
 
                             if !found_path {
-                                let _ = stream.write_all(deser_response(NOT_FOUND_RESPONSE).as_bytes());
+                                let _ =
+                                    stream.write_all(deser_response(NOT_FOUND_RESPONSE).as_bytes());
                             }
                         }
                         Err(e) => {
                             self.log.debug(&format!("Server error: {e}"));
-                            let _ = stream.write_all(deser_response(BAD_REQUEST_RESPONSE).as_bytes());
+                            let _ =
+                                stream.write_all(deser_response(BAD_REQUEST_RESPONSE).as_bytes());
                         }
                     }
                 }
                 Err(e) => {
-                    self.log.warn(&format!("Failed to establish connection: {e}")); // :)
+                    self.log
+                        .warn(&format!("Failed to establish connection: {e}")); // :)
                 }
             }
         }

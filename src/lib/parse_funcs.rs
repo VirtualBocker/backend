@@ -11,7 +11,9 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
     let mut lines = req_body.lines(); // возвращает итератором по подстрокам, т.е. либо по символам 1) \n
     // либо 2) \r\n
     // &str — срез строки, представляет ссылку на участок UTF-8 в уже существующем String (или на статический литерал).
-    let start_line = lines.next().ok_or(ServerError::ParseError(format!("Start line not found in iter: {lines:?}")))?; // вызываем метод .next у итератора lines
+    let start_line = lines.next().ok_or(ServerError::ParseError(format!(
+        "Start line not found in iter: {lines:?}"
+    )))?; // вызываем метод .next у итератора lines
 
     // ------------ ЧАСТЬ №1 ------------
     // Например, теперь в start_line находится: "GET / HTTP/1.1" или "GET /path HTTP/1.1"
@@ -19,7 +21,9 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
     let mut parts = start_line.split_whitespace(); // разделим строку start_line по пробелам
 
     // Первый parts -- это HTTP-метод
-    let method_str: &str = parts.next().ok_or(ServerError::ParseError(format!("HTTP method not found in parts: {parts:?}")))?;
+    let method_str: &str = parts.next().ok_or(ServerError::ParseError(format!(
+        "HTTP method not found in parts: {parts:?}"
+    )))?;
 
     // Преобразуем &str в Method
     let method: Method = match method_str {
@@ -31,7 +35,12 @@ pub fn parse_request(req_body: String) -> Result<Request, ServerError> {
     };
 
     // Второй — это путь
-    let path: String = parts.next().ok_or(ServerError::ParseError(format!("Path not found in parts: {parts:?}")))?.to_string();
+    let path: String = parts
+        .next()
+        .ok_or(ServerError::ParseError(format!(
+            "Path not found in parts: {parts:?}"
+        )))?
+        .to_string();
 
     // ------------ ЧАСТЬ №2 ------------
     // Считаем все headers у сырого http запроса

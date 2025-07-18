@@ -4,7 +4,7 @@ use std::fmt::Display;
 pub enum ServerError {
     InitError(String),
     ParseError(String),
-    HandlerError(String)
+    HandlerError(String),
 }
 
 impl Display for ServerError {

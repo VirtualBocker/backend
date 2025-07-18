@@ -5,7 +5,11 @@ use std::{
 };
 
 use crate::lib::{
-    logger::{Logger}, parse_funcs::{deser_response, parse_request}, req_res_structs::{Method, Response}, request::Request, server_errors::ServerError
+    logger::Logger,
+    parse_funcs::{deser_response, parse_request},
+    req_res_structs::{Method, Response},
+    request::Request,
+    server_errors::ServerError,
 };
 
 type HandlerFn = fn(&Request) -> Response;
@@ -93,7 +97,6 @@ impl Server {
         path: &'static str,
         handler: HandlerFn,
     ) -> Result<(), ServerError> {
-
         let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
@@ -106,7 +109,6 @@ impl Server {
         paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
         self.log.info(&format!("Added {method} handled to path {path}"));
         Ok(())
-
     }
 
     #[allow(non_snake_case)]
@@ -293,7 +295,6 @@ impl Server {
     // 8. ???
     // 9. PROFIT!!!
     pub fn start(&self) {
-
         self.log.info(&"Server started".to_string());
 
         // Проходимся по бесконечному итератору входящих подключений

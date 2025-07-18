@@ -1,4 +1,6 @@
-use crate::lib::docker_works::{ContainerError, ContainerInfo, parse_docker_ps_a}; // структура для информации про один мой контейнер
+use crate::lib::docker_works::{ContainerError, ContainerInfo, parse_docker_ps_a};
+use crate::lib::logger::Logger;
+// структура для информации про один мой контейнер
 use crate::lib::req_res_structs::{BodyType, Response}; // стрктура ответа
 use crate::lib::request::Request; // структура запроса
 use serde_json;
@@ -71,13 +73,16 @@ pub fn handler_return_all_containers(_request: &Request) -> Response {
 
             resp
         }
-        Err(_) => {
+        Err(e) => {
             let resp: Response = Response {
                 // мой возвращаемый Response
                 response_code: 500,
                 headers: None, // заголовки Content-Type: application/json и Content-Length: {number} будут добавлены в функции deser_response
                 body: None,
             };
+
+            let logger = Logger::default();
+            logger.error(&format!("Container error: {}", e));
 
             resp
         }

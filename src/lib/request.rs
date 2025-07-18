@@ -24,17 +24,12 @@ impl Default for Request {
 }
 
 impl Request {
+    // /container/:id/reboot разбивается на ["", "container", ":id", "reboot"]
     // функция для парсинга (т.е. разбиения) пути по составляющим
-    // /container/:id/reboot разбивается на [ container, :id, reboot ]
-
-    pub fn parse_args(&mut self){
-        let mut request_chunks: Vec<&str> = self
-            .path
-            .trim_start_matches('/')
-            .split('/')
-            .collect();
-
-        for (i, &key_chunk) in request_chunks.iter().enumerate(){
+    pub fn parse_args(&mut self) {
+        let request_chunks: Vec<&str> = self.path.trim_start_matches('/').split('/').collect();
+        // /container/:id/reboot разбивается на [ container, :id, reboot ] т.к. убрали начальное / .trim_start_matches
+        for (i, &key_chunk) in request_chunks.iter().enumerate() {
             // .iter - получаю итератор, .enumerate - добавляю текущему итератору counter (счетчик)
             if key_chunk.starts_with(":") {
                 // подходит key_chunk = ":id"

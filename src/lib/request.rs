@@ -38,7 +38,7 @@ impl Request {
     }
 
     // ПРОВИРЯЕТ ЧТО ПУТЬ ИЗ РЕКВЕСТА И ПУТЬ ИЗ АРГУМЕНТА АНАЛОГИЧНЫ
-    // НЕ СЧИТАЯ ВСЯКИХ ТАМ БЛЯТЬ АРГУМЕНТОВ
+    // НЕ СЧИТАЯ ВСЯКИХ ТАМ БЛЯТЬ АРГУМЕНТОВ 
     pub fn is_exact(&mut self, path: &str) -> bool {
         let request_chunks: Vec<&str> = self.path.split("/").collect();
         for (i, key_chunk) in path.split("/").enumerate() {

@@ -26,11 +26,31 @@ impl Default for Request {
 impl Request {
     // функция для парсинга (т.е. разбиения) пути по составляющим
     // /container/:id/reboot разбивается на [ container, :id, reboot ]
+
+    pub fn parse_args(&mut self){
+        let mut request_chunks: Vec<&str> = self
+            .path
+            .trim_start_matches('/')
+            .split('/')
+            .collect();
+
+        for (i, &key_chunk) in request_chunks.iter().enumerate(){
+            // .iter - получаю итератор, .enumerate - добавляю текущему итератору counter (счетчик)
+            if key_chunk.starts_with(":") {
+                // подходит key_chunk = ":id"
+                let (_, id) = key_chunk.split_at(1); // получаем: ":" и "id" (":" выкидываем т.к. первый аргумент _)
+                self.rest_params
+                    .insert(id.to_string(), request_chunks[i].to_string()); // вставляем в Hash-table<String, String> элемент <1, id>
+            }
+        }
+    }
+
+    /*
     pub fn parse_args(&mut self) {
         let mut request_chunks: Vec<&str> = self.path.split("/").collect(); // /container/:id/reboot разбивается на ["", "container", ":id", "reboot"]
         request_chunks.remove(0); // убираю пустой сегмент "", имеем => ["container", ":id", "reboot"]
 
-        for (i, key_chunk) in request_chunks.iter().enumerate() {
+        for (i, key_chunk) in request_chunks.into_iter().enumerate() {
             // .iter - получаю итератор, .enumerate - добавляю текущему итератору counter (счетчик)
             if key_chunk.starts_with(":") {
                 // подходит key_chunk = ":id"
@@ -47,7 +67,7 @@ impl Request {
                     .insert(id.to_string(), request_chunks[i].to_string());
             }
         }*/
-    }
+    }*/
 
     // ПРОВИРЯЕТ ЧТО ПУТЬ ИЗ РЕКВЕСТА И ПУТЬ ИЗ АРГУМЕНТА АНАЛОГИЧНЫ
     // НЕ СЧИТАЯ ВСЯКИХ ТАМ БЛЯТЬ АРГУМЕНТОВ

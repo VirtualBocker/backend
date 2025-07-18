@@ -1,3 +1,5 @@
+use std::{fmt::Display, io::BufRead};
+
 #[derive(Debug)]
 pub struct ContainerInfo
 // информация о контейнере
@@ -50,6 +52,19 @@ pub enum ContainerError
     ParseError(String),  // Ошибка парсинга
 }
 
+impl Display for ContainerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DockerError(val) => {
+                write!(f, "Docker error: {val}")
+            }
+            Self::ParseError(val) => {
+                write!(f, "Parse error: {val}")
+            }
+        }
+    }
+}
+
 // src/lib/docker_work.rs
 
 // Парсим все докер контейнеры на системе с помощью команды
@@ -58,22 +73,25 @@ pub enum ContainerError
 // Парсим. Ошибка? Возвращаем ContainerError::ParseError
 // Всё окей? Возвращаем вектор информации о контейнерах Vector<ContainerInfo>
 pub fn parse_docker_ps_a() -> Result<Vec<ContainerInfo>, ContainerError> {
-    let input = r#"awesome_dewdney	Exited (130) 5 minutes ago	dockurr/windows	"/usr/bin/tini -s /root/start.sh --option --really-long-flag"
-jolly_margulis	Exited (0) 6 minutes ago	ubuntu:20.04	"ls -lah /some/very/long/path/to/inspect"
-MyNgnix	Up 7 minutes	nginx	"/docker-entrypoint.sh nginx -g 'daemon off;'"
-no_cmd	Exited (0) 30 minutes ago	alpine:3.20	""
-paused_box	Paused	ubuntu:24.04	"sleep infinity"
-test-ci-runner	Up 12 seconds	gitlab/gitlab-runner:alpine	"/bin/gitlab-runner run --user=gitlab-runner --working-directory=/home/gitlab-runner"
-web_front	Up 3 hours	nginx:1.25-alpine	"nginx -g 'daemon off;'"
-db_back	Exited (0) 2 hours ago	postgres:16.2-alpine	"docker-entrypoint.sh postgres"
-cache_srv	Exited (137) 5 minutes ago	redis:7.2	"redis-server --save 60 1 --loglevel warning"
-builder	Created	golang:1.22	"/bin/sh -c 'go build -o /app/bin/myapp ./...'"
-worker_long_name	Created	ruby:3.3	"/usr/bin/tini -- bash -lc 'bundle exec rake jobs:work'"
-init_image	Created	busybox	"sh -c 'echo init && sleep 3600'"
-analytics	Up 47 minutes	myorg/spark:3.5.0-hadoop3.3	"/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker ..."
-etl_bat	Exited (1) 10 seconds ago	python:3.12-slim-bookworm	"python /etl/run_batch.py --once"
-gui_app	Up 5 minutes (healthy)	myorg/gui-app:latest	"/usr/bin/entrypoint --listen 0.0.0.0:8080"
-MyNgnix	Up 12 hours	nginx	"/docker-entrypoint.sh""#.to_string();
+    let cmd_output: std::process::Output = std::process::Command::new("docker") // Команда-объект, которая запускает исполняемый файл docker
+        .args(["ps", "-a", "--no-trunc", "--format"])
+        .arg("{{.Names}}\t{{.Status}}\t{{.Image}}\t{{.Command}}") // .args - добавляем аргументы для командной строки
+        .output() // .output() блокирует текущий поток, пока процесс не будет завершен
+        // output возвращает Result<_,std::io::Error>.
+        // output - запуск нашей команды: docker <action> <label>
+        .map_err(|e: std::io::Error| ContainerError::DockerError(format!("{e}")))?; // Добавил вопрос, поэтому в итоге output имеет итп std::process::Output
+    // .map_err - преобразует системную ошибку в пользовательскую
+    //            e - замыкание, принимающее исходную ошибку
+    //            e превращается из Result<_,std::io::Error> в Result<_,ContainerError>
+
+    if !cmd_output.status.success()
+    // если возвращенный код не успешен, т.е. не = 0
+    {
+        return Err(ContainerError::DockerError(format!(
+            "{}",
+            String::from_utf8(cmd_output.stdout).unwrap()
+        )));
+    }
 
     // let mut parts: Vec<String> = next_line.split('\t').map(str::to_string).collect(); // получим вектор строк, который разделен \t (табуляцией)
     // 1. .split возвращает итератор, который при каждом вызове метода .next возвращает срез между символами табуляции
@@ -82,15 +100,19 @@ MyNgnix	Up 12 hours	nginx	"/docker-entrypoint.sh""#.to_string();
 
     let mut containers: Vec<ContainerInfo> = Vec::new(); // сюда будем складывать все считанные контейнеры
 
-    for line in input.lines() {
+    for line in cmd_output.stdout.lines() {
         // разобьём одну line по \t:
+
+        let line = line.unwrap();
+
         let parts: Vec<&str> = line.split('\t').collect();
 
         // считаем label
         if parts.len() < 4 {
             return Err(ContainerError::ParseError(format!(
-                "Unexpected columns (expected 4), got {} in {line}",
-                parts.len()
+                "Unexpected columns (expected 4), got {} in {}",
+                parts.len(),
+                &line
             )));
         }
 
@@ -112,8 +134,8 @@ MyNgnix	Up 12 hours	nginx	"/docker-entrypoint.sh""#.to_string();
                 "Dead" => ContainerStatus::Dead,
                 _other => {
                     return Err(ContainerError::ParseError(format!(
-                        "Unkown status {} in line {line}",
-                        parts[2]
+                        "Unkown status {} in line {}",
+                        parts[2], &line
                     )));
                 }
             }
@@ -127,8 +149,8 @@ MyNgnix	Up 12 hours	nginx	"/docker-entrypoint.sh""#.to_string();
                 command_str[1..command_str.len() - 1].to_string() // считываем, не включая первый и последний символ, которые являются "".
             } else {
                 return Err(ContainerError::ParseError(format!(
-                    "Unknown command {} in line {line}",
-                    parts[3]
+                    "Unknown command {} in line {}",
+                    parts[3], &line
                 )));
             }
         };

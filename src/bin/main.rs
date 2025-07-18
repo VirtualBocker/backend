@@ -13,25 +13,28 @@ fn main() {
     server.POST("/container/:id/reboot", |r: &Request| Response {
         response_code: 200,
         headers: None,
-        body: Some(BodyType::Plain(
-            format!("Container ID is: {}\nRebooting...\nTEST", r.rest_params.get("id").unwrap())
-        )),
+        body: Some(BodyType::Plain(format!(
+            "Container ID is: {}\nRebooting...\nTEST",
+            r.rest_params.get("id").unwrap()
+        ))),
     });
 
     server.POST("/container/:id/start", |r: &Request| Response {
         response_code: 200,
         headers: None,
-        body: Some(BodyType::Plain(
-            format!("Container ID is: {}\nStarting...\nTEST", r.rest_params.get("id").unwrap())
-        )),
+        body: Some(BodyType::Plain(format!(
+            "Container ID is: {}\nStarting...\nTEST",
+            r.rest_params.get("id").unwrap()
+        ))),
     });
 
     server.POST("/container/:id/stop", |r: &Request| Response {
         response_code: 200,
         headers: None,
-        body: Some(BodyType::Plain(
-            format!("Container ID is: {}\nStopping...\nTEST", r.rest_params.get("id").unwrap())
-        )),
+        body: Some(BodyType::Plain(format!(
+            "Container ID is: {}\nStopping...\nTEST",
+            r.rest_params.get("id").unwrap()
+        ))),
     });
 
     server.start();

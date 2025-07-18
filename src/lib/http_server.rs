@@ -340,8 +340,7 @@ impl Server {
                         let mut found_path = false;
 
                         for (key, value) in self.handlers.get(&request.method).unwrap() {
-                            if request.is_exact(key) {
-                                
+                            if request.is_similar(key) {
                                 request.parse_args(key);
 
                                 let response = value(&request);

@@ -71,20 +71,20 @@ impl Logger {
         let time = time_date_utils::time_string(self.times);
         match _type {
             logger_utils::MessageType::Critical => eprintln!(
-                "\x1b[30m\x1b[41m{}\x1b[0m {date} {time} : {_msg}",
+                "☠️ \x1b[30m\x1b[41m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ),
             logger_utils::MessageType::Debug => {
-                println!("\x1b[36m{}\x1b[0m {date} {time} : {_msg}", _type.prefix())
+                println!("🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
             }
             logger_utils::MessageType::Error => {
-                eprintln!("\x1b[91m{}\x1b[0m {date} {time} : {_msg}", _type.prefix())
+                eprintln!("💥 \x1b[91m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
             }
             logger_utils::MessageType::Info => {
-                println!("\x1b[35m{}\x1b[0m {date} {time} : {_msg}", _type.prefix())
+                println!("🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
             }
             logger_utils::MessageType::Warn => {
-                println!("\x1b[33m{}\x1b[0m {date} {time} : {_msg}", _type.prefix())
+                println!("⚠️ \x1b[33m{}\x1b[0m {date} {time} :: {_msg}", _type.prefix())
             }
         };
     }
@@ -107,6 +107,21 @@ impl Logger {
 
     pub fn warn(&self, _msg: &String) {
         self.message(logger_utils::MessageType::Warn, _msg);
+    }
+
+    pub fn motd(&self) {
+        const MOTD: &str = r"
+    ____             __            
+   / __ )____  _____/ /_____  _____
+  / __  / __ \/ ___/ //_/ _ \/ ___/
+ / /_/ / /_/ / /__/ ,< /  __/ /    
+/_____/\____/\___/_/|_|\___/_/     
+                                   
+
+";
+
+    println!("{MOTD}");
+
     }
 }
 

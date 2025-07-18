@@ -38,6 +38,6 @@ impl std::fmt::Display for Method {
             Method::OTHER => "OTHER",
         };
         // макрос write! записывает в форматер f строку s
-        write!(f, "{}", stroka)
+        write!(f, "{stroka}")
     }
 }

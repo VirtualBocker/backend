@@ -47,7 +47,7 @@ impl Request {
             if i == 0 {
                 continue;
             }
-            if !key_chunk.starts_with(":") && !(key_chunk == request_chunks[i]) {
+            if !key_chunk.starts_with(":") && (key_chunk != request_chunks[i]) {
                 return false;
             }
         }

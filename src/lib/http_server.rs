@@ -14,6 +14,18 @@ use crate::lib::{
 type HandlerFn = fn(&Request) -> Response;
 // То есть, например, handle_home(req) принимает на вход Request и возвращает Response.
 
+const BAD_REQUEST_RESPONSE: Response = Response {
+    response_code: 404,
+    headers: None,
+    body: None,
+};
+
+const NOT_FOUND_RESPONSE: Response = Response {
+    response_code: 404,
+    headers: None,
+    body: None,
+};
+
 #[derive(Debug)]
 pub struct Server {
     listener: TcpListener,
@@ -319,23 +331,33 @@ impl Server {
                         // take_while останавливает итерацию, когда встретится пустая строка "". Сама пустая строка в результат не попадает
                         // + .take_while не изменяет строки
                         .collect(); // Собираем всё в тип String
-                        // собирает все оставшиеся элементы итератора и скеивает их в контейнер нужного типа (String, т.к. мы его явно задали при let raw_request: String)
-                        // у нас остаётся \r\n в конце каждой строки, т.к. мы вернули эту последовательность в map, а .take_while не изменяет строки
+                    // собирает все оставшиеся элементы итератора и скеивает их в контейнер нужного типа (String, т.к. мы его явно задали при let raw_request: String)
+                    // у нас остаётся \r\n в конце каждой строки, т.к. мы вернули эту последовательность в map, а .take_while не изменяет строки
                     // println!("{}",raw_request);
                     if let Ok(mut request) = parse_request(raw_request) {
                         // Если получилось нормально спарсить запрос
 
+                        let mut found_path = false;
+
                         for (key, value) in self.handlers.get(&request.method).unwrap() {
                             if request.is_exact(key) {
+                                
                                 request.parse_args(key);
 
                                 let response = value(&request);
-
                                 let deserialized_response = deser_response(response);
 
                                 let _ = stream.write_all(deserialized_response.as_bytes());
+                                found_path = true;
+                                break;
                             }
                         }
+
+                        if !found_path {
+                            let _ = stream.write_all(deser_response(NOT_FOUND_RESPONSE).as_bytes());
+                        }
+                    } else {
+                        let _ = stream.write_all(deser_response(BAD_REQUEST_RESPONSE).as_bytes());
                     }
                 }
                 Err(e) => {

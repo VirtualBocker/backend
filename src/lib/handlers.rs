@@ -37,7 +37,6 @@ pub fn handler_return_all_containers(_request: &Request) -> Response {
                 });
                 // вставляем пару: ключ - one_container.label и значение - description_for_label
                 map.insert(one_container.label, description_for_label);
-                println!("{:?}", map);
                 /*  Теперь в map хранится следующее:
                 "analytics": {
                     "command": "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker ...",

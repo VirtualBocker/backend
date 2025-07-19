@@ -82,7 +82,7 @@ pub fn handler_return_all_containers(_request: &Request) -> Response {
             };
 
             let logger = Logger::default();
-            logger.error(&format!("Container error: {}", e));
+            logger.error(&format!("Container error: {e}"));
 
             resp
         }

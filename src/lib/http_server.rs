@@ -31,7 +31,7 @@ const NOT_FOUND_RESPONSE: Response = Response {
 pub struct Server {
     listener: TcpListener,
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
-    log : Logger,
+    log: Logger,
 }
 
 /*
@@ -88,7 +88,11 @@ impl Server {
         let log = Logger::default();
 
         // Возвращаем наш объект сервера
-        Ok(Self { listener, handlers, log })
+        Ok(Self {
+            listener,
+            handlers,
+            log,
+        })
     }
 
     pub fn add_handler(
@@ -100,14 +104,17 @@ impl Server {
         let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
-            self.log.info(&format!("{method} handler with path '{path}' already registered!"));
+            self.log.info(&format!(
+                "{method} handler with path '{path}' already registered!"
+            ));
             return Err(ServerError::HandlerError(format!(
                 "{method} handler with path '{path}' already registered!"
             )));
         }
 
         paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
-        self.log.info(&format!("Added {method} handled to path {path}"));
+        self.log
+            .info(&format!("📌 Handler registered: {method} {path}"));
         Ok(())
     }
 
@@ -295,6 +302,7 @@ impl Server {
     // 8. ???
     // 9. PROFIT!!!
     pub fn start(&self) {
+        self.log.motd();
         self.log.info(&"Server started".to_string());
 
         // Проходимся по бесконечному итератору входящих подключений
@@ -341,34 +349,45 @@ impl Server {
                     // собирает все оставшиеся элементы итератора и скеивает их в контейнер нужного типа (String, т.к. мы его явно задали при let raw_request: String)
                     // у нас остаётся \r\n в конце каждой строки, т.к. мы вернули эту последовательность в map, а .take_while не изменяет строки
                     // println!("{}",raw_request);
-                    if let Ok(mut request) = parse_request(raw_request) {
+                    match parse_request(raw_request) {
                         // Если получилось нормально спарсить запрос
+                        Ok(mut request) => {
+                            let mut found_path = false;
 
-                        let mut found_path = false;
+                            for (key, value) in self.handlers.get(&request.method).unwrap() {
+                                if request.is_similar(key) {
+                                    request.parse_args(key);
 
-                        for (key, value) in self.handlers.get(&request.method).unwrap() {
-                            if request.is_similar(key) {
-                                request.parse_args(key);
+                                    let response = value(&request);
 
-                                let response = value(&request);
-                                let deserialized_response = deser_response(response);
+                                    self.log.info(&format!(
+                                        "Handler triggered for route: {} {}",
+                                        request.method, request.path
+                                    ));
 
-                                let _ = stream.write_all(deserialized_response.as_bytes());
-                                found_path = true;
-                                break;
+                                    let deserialized_response = deser_response(response);
+
+                                    let _ = stream.write_all(deserialized_response.as_bytes());
+                                    found_path = true;
+                                    break;
+                                }
+                            }
+
+                            if !found_path {
+                                let _ =
+                                    stream.write_all(deser_response(NOT_FOUND_RESPONSE).as_bytes());
                             }
                         }
-
-                        if !found_path {
-                            let _ = stream.write_all(deser_response(NOT_FOUND_RESPONSE).as_bytes());
+                        Err(e) => {
+                            self.log.debug(&format!("Server error: {e}"));
+                            let _ =
+                                stream.write_all(deser_response(BAD_REQUEST_RESPONSE).as_bytes());
                         }
-                    } else {
-                        let _ = stream.write_all(deser_response(BAD_REQUEST_RESPONSE).as_bytes());
                     }
                 }
                 Err(e) => {
-                    self.log.warn(&format!("Failed to establish connection: {e}")); // :)
-                    //eprintln!("Failed to establish connection: {e}") // :(
+                    self.log
+                        .warn(&format!("Failed to establish connection: {e}")); // :)
                 }
             }
         }

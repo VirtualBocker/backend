@@ -87,10 +87,9 @@ pub fn parse_docker_ps_a() -> Result<Vec<ContainerInfo>, ContainerError> {
     if !cmd_output.status.success()
     // если возвращенный код не успешен, т.е. не = 0
     {
-        return Err(ContainerError::DockerError(format!(
-            "{}",
-            String::from_utf8(cmd_output.stdout).unwrap()
-        )));
+        return Err(ContainerError::DockerError(
+            String::from_utf8(cmd_output.stdout).unwrap().to_string(),
+        ));
     }
 
     // let mut parts: Vec<String> = next_line.split('\t').map(str::to_string).collect(); // получим вектор строк, который разделен \t (табуляцией)

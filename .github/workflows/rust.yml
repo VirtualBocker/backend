@@ -10,36 +10,36 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-
-  check:
+  cargo_bloat:
+    name: Cargo Bloat
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-features
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        components: clippy, rustfmt
-        override: true
-        
-    - name: Check format
-      run: cargo fmt --all -- --check
-    
-  build:
+      - uses: actions/checkout@4
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: orf/cargo-bloat-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
+  clippy:
+    name: Clippy
     runs-on: ubuntu-latest
-
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
+      - uses: auguwu/clippy-action@1.4.0
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+  
+  build:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: Swatinem/rust-cache@v2
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
+    - uses: dtolnay/rust-toolchain@nightly
       
     - name: Build
       run: cargo build

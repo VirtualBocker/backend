@@ -23,9 +23,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
-      - uses: auguwu/clippy-action@1.4.0
+      - uses: giraffate/clippy-action@v1
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
+          reporter: 'github-pr-review'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      # - uses: auguwu/clippy-action@1.4.0
+      #   with:
+      #     token: ${{secrets.GITHUB_TOKEN}}
           
       # - uses: sksat/action-clippy@v1.1.1
       #   if: github.event_name == 'push'

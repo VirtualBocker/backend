@@ -12,10 +12,10 @@ pub mod logger_utils {
     
     #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
     pub enum LogLevel {
+        #[default]
         Info,
         Dbug,
         Warn,
-        #[default]
         Error
     }
     

@@ -142,28 +142,47 @@ impl Logger {
 }
 
 impl Logger {
-    pub fn new(
-        date_format: logger_utils::DateFormat,
-        time_format: logger_utils::TimeFormat,
-    ) -> Self {
+    pub fn new() -> Self {
+
+        let date_format = env::var("DATE_FORMAT");
+        let time_format = env::var("TIME_FORMAT");
 
         let log_lel: logger_utils::LogLevel;
         if let Ok(s) = env::var("LOG_LEVEL") {
             match s.as_str() {
                 logger_constants::IMPORATANT_ONLY => 
                 {
-                    log_lel = logger_utils::LogLevel::ImporatantOnly
+                    log_lel = logger_utils::LogLevel::ImporatantOnly;
                 }
                 _ => log_lel = logger_utils::LogLevel::All,
             }
         } else {
             log_lel = logger_utils::LogLevel::All
         }
-
         Self {
-            times: time_format,
-            dates: date_format,
-            levels:log_lel,
+            dates:match date_format{
+                Ok(s) => {
+                    match s.as_str() {
+                        "ISO8601" => logger_utils::DateFormat::ISO8601,
+                        "Asia" => logger_utils::DateFormat::Asian,
+                        "Europe" => logger_utils::DateFormat::Europe,
+                        "US" => logger_utils::DateFormat::US,
+                        _ => logger_utils::DateFormat::default()
+                    }
+                },
+                Err(_) => logger_utils::DateFormat::default()
+            },
+            times: match time_format{
+                Ok(s) =>{
+                    match s.as_str() {
+                        "H12Format" => logger_utils::TimeFormat::H12Format,
+                        "H24Format" => logger_utils::TimeFormat::H24Format,
+                        _ => logger_utils::TimeFormat::default()
+                    }
+                }
+                Err(_) => logger_utils::TimeFormat::default()
+            },
+            levels:log_lel
         }
     }
 }

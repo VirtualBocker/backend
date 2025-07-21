@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::lib::{
-    logger::{logger_utils::{DateFormat, TimeFormat}, Logger},
+    logger::Logger,
     parse_funcs::{deser_response, parse_request},
     req_res_structs::{Method, Response},
     request::Request,
@@ -85,7 +85,7 @@ impl Server {
         handlers.insert(Method::DELETE, HashMap::new());
         handlers.insert(Method::OTHER, HashMap::new());
 
-        let log = Logger::new(DateFormat::default(), TimeFormat::default());
+        let log = Logger::new();
 
         // Возвращаем наш объект сервера
         Ok(Self {

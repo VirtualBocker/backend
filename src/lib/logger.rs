@@ -1,4 +1,7 @@
+use std::env;
+
 pub mod logger_utils {
+
     pub enum MessageType {
         Debug,
         Info,
@@ -6,7 +9,14 @@ pub mod logger_utils {
         Error,
         Critical,
     }
-
+    
+    #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
+    pub enum LogLevel {
+        #[default]
+        All,
+        ImporatantOnly,
+    }
+    
     impl MessageType {
         pub fn prefix(&self) -> String {
             match self {
@@ -18,14 +28,14 @@ pub mod logger_utils {
             }
         }
     }
-
+    
     #[derive(Default, Copy, Clone, Debug)]
     pub enum TimeFormat {
         H12Format, // 12 часовой формат
         #[default]
         H24Format, // 24 часовой формат
     }
-
+    
     #[derive(Default, Copy, Clone, Debug)]
     pub enum DateFormat {
         Asian,  // yyyy/mm/dd
@@ -39,7 +49,7 @@ pub mod logger_utils {
 mod time_date_utils {
     use crate::lib::logger::logger_utils;
     use chrono::Local;
-
+    
     pub fn time_string(time_format: logger_utils::TimeFormat) -> String {
         let now = Local::now();
         match time_format {
@@ -47,7 +57,7 @@ mod time_date_utils {
             logger_utils::TimeFormat::H24Format => now.time().format("%H:%M:%S").to_string(),
         }
     }
-
+    
     pub fn date_string(date_format: logger_utils::DateFormat) -> String {
         let now = Local::now();
         match date_format {
@@ -58,10 +68,23 @@ mod time_date_utils {
         }
     }
 }
+
+mod logger_constants {
+    pub const IMPORATANT_ONLY: &'static str = "important_only";
+    pub const MOTD: &str = r"
+    ____             __            
+   / __ )____  _____/ /_____  _____
+  / __  / __ \/ ___/ //_/ _ \/ ___/
+ / /_/ / /_/ / /__/ ,< /  __/ /    
+/_____/\____/\___/_/|_|\___/_/
+";
+}
+
 #[derive(Default, Debug)]
 pub struct Logger {
     pub times: logger_utils::TimeFormat,
     pub dates: logger_utils::DateFormat,
+    pub levels:logger_utils::LogLevel,
 }
 
 impl Logger {
@@ -73,30 +96,23 @@ impl Logger {
                 "☠️ \x1b[30m\x1b[41m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ),
-            logger_utils::MessageType::Debug => {
-                println!(
-                    "🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}",
-                    _type.prefix()
-                )
-            }
-            logger_utils::MessageType::Error => {
-                eprintln!(
-                    "💥 \x1b[91m{}\x1b[0m {date} {time} :: {_msg}",
-                    _type.prefix()
-                )
-            }
-            logger_utils::MessageType::Info => {
-                println!(
-                    "🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}",
-                    _type.prefix()
-                )
-            }
-            logger_utils::MessageType::Warn => {
-                println!(
-                    "⚠️ \x1b[33m{}\x1b[0m {date} {time} :: {_msg}",
-                    _type.prefix()
-                )
-            }
+            logger_utils::MessageType::Debug => println!(
+                "🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}",
+                _type.prefix()
+            ),
+            logger_utils::MessageType::Error => eprintln!(
+                "💥 \x1b[91m{}\x1b[0m {date} {time} :: {_msg}",
+                _type.prefix()
+            ),
+            logger_utils::MessageType::Info =>  if self.levels != logger_utils::LogLevel::ImporatantOnly { println!(
+                "🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}",
+                _type.prefix()
+            ) },
+            logger_utils::MessageType::Warn =>  if self.levels != logger_utils::LogLevel::ImporatantOnly { println!(
+                "⚠️ \x1b[33m{}\x1b[0m {date} {time} :: {_msg}",
+                _type.prefix()
+            ) },
+            
         };
     }
 
@@ -121,17 +137,7 @@ impl Logger {
     }
 
     pub fn motd(&self) {
-        const MOTD: &str = r"
-    ____             __            
-   / __ )____  _____/ /_____  _____
-  / __  / __ \/ ___/ //_/ _ \/ ___/
- / /_/ / /_/ / /__/ ,< /  __/ /    
-/_____/\____/\___/_/|_|\___/_/     
-                                   
-
-";
-
-        println!("{MOTD}");
+        println!("{}\tVersion \x1b[32m{}\x1b[0m.\x1b[31m{}\x1b[0m\n\n" , logger_constants::MOTD, env!("CARGO_PKG_VERSION_MAJOR"), env!("CARGO_PKG_VERSION_MINOR"));
     }
 }
 
@@ -140,9 +146,24 @@ impl Logger {
         date_format: logger_utils::DateFormat,
         time_format: logger_utils::TimeFormat,
     ) -> Self {
+
+        let log_lel: logger_utils::LogLevel;
+        if let Ok(s) = env::var("LOG_LEVEL") {
+            match s.as_str() {
+                logger_constants::IMPORATANT_ONLY => 
+                {
+                    log_lel = logger_utils::LogLevel::ImporatantOnly
+                }
+                _ => log_lel = logger_utils::LogLevel::All,
+            }
+        } else {
+            log_lel = logger_utils::LogLevel::All
+        }
+
         Self {
             times: time_format,
             dates: date_format,
+            levels:log_lel,
         }
     }
 }

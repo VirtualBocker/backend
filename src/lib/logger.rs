@@ -12,9 +12,11 @@ pub mod logger_utils {
     
     #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
     pub enum LogLevel {
+        Info,
+        Dbug,
+        Warn,
         #[default]
-        All,
-        ImporatantOnly,
+        Error
     }
     
     impl MessageType {
@@ -70,7 +72,10 @@ mod time_date_utils {
 }
 
 mod logger_constants {
-    pub const IMPORATANT_ONLY: &str = "important_only";
+    pub const DBUG: &str = "debug";
+    pub const INFO: &str = "info";
+    pub const WARN: &str = "warn";
+    pub const ERROR: &str = "error";
     pub const MOTD: &str = r"
     ____             __            
    / __ )____  _____/ /_____  _____
@@ -96,20 +101,26 @@ impl Logger {
                 "☠️ \x1b[30m\x1b[41m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ),
-            logger_utils::MessageType::Debug => println!(
-                "🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}",
-                _type.prefix()
-            ),
             logger_utils::MessageType::Error => eprintln!(
                 "💥 \x1b[91m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ),
-            logger_utils::MessageType::Info =>  if self.levels != logger_utils::LogLevel::ImporatantOnly { println!(
-                "🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}",
+            logger_utils::MessageType::Warn =>  if self.levels == logger_utils::LogLevel::Warn || 
+            self.levels == logger_utils::LogLevel::Dbug ||
+            self.levels == logger_utils::LogLevel::Info { 
+            println!(
+                "⚠️ \x1b[33m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ) },
-            logger_utils::MessageType::Warn =>  if self.levels != logger_utils::LogLevel::ImporatantOnly { println!(
-                "⚠️ \x1b[33m{}\x1b[0m {date} {time} :: {_msg}",
+            logger_utils::MessageType::Debug => if self.levels == logger_utils::LogLevel::Dbug ||
+            self.levels == logger_utils::LogLevel::Info{
+            println!(
+                "🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}",
+                _type.prefix()
+            )},
+            logger_utils::MessageType::Info =>  if self.levels == logger_utils::LogLevel::Info {
+            println!(
+                "🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ) },
             
@@ -150,14 +161,26 @@ impl Logger {
         let log_lel: logger_utils::LogLevel;
         if let Ok(s) = env::var("LOG_LEVEL") {
             match s.as_str() {
-                logger_constants::IMPORATANT_ONLY => 
+                logger_constants::DBUG => 
                 {
-                    log_lel = logger_utils::LogLevel::ImporatantOnly;
+                    log_lel = logger_utils::LogLevel::Dbug;
                 }
-                _ => log_lel = logger_utils::LogLevel::All,
+                logger_constants::INFO => 
+                {
+                    log_lel = logger_utils::LogLevel::Info;
+                }
+                logger_constants::WARN => 
+                {
+                    log_lel = logger_utils::LogLevel::Warn;
+                }
+                logger_constants::ERROR => 
+                {
+                    log_lel = logger_utils::LogLevel::Error;
+                }
+                _ => log_lel = logger_utils::LogLevel::default(),
             }
         } else {
-            log_lel = logger_utils::LogLevel::All
+            log_lel = logger_utils::LogLevel::default()
         }
         Self {
             dates:match date_format{

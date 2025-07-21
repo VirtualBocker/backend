@@ -70,7 +70,7 @@ mod time_date_utils {
 }
 
 mod logger_constants {
-    pub const IMPORATANT_ONLY: &'static str = "important_only";
+    pub const IMPORATANT_ONLY: &str = "important_only";
     pub const MOTD: &str = r"
     ____             __            
    / __ )____  _____/ /_____  _____

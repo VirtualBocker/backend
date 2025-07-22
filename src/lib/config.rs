@@ -46,20 +46,20 @@ impl Default for Config{
 }
 
 mod config_constants {
-    pub const DBUG: &str = "debug";
-    pub const INFO: &str = "info";
-    pub const WARN: &str = "warn";
-    pub const ERROR: &str = "error";
-    pub const ASIAN: &str = "asian";
-    pub const EUROPE: &str = "european";
-    pub const ISO : &str = "iso";
-    pub const US: &str = "us";
-    pub const H12FORMAT: &str = "h12";
-    pub const H24FORMAT: &str = "h24";
+    pub const DBUG:     &str = "debug";
+    pub const INFO:     &str = "info";
+    pub const WARN:     &str = "warn";
+    pub const ERROR:    &str = "error";
+    pub const ASIAN:    &str = "asian";
+    pub const EUROPE:   &str = "european";
+    pub const ISO:      &str = "iso";
+    pub const US:       &str = "us";
+    pub const H12FORMAT:&str = "h12";
+    pub const H24FORMAT:&str = "h24";
 }
 
 impl Config{
-    fn from_env() -> Self {
+    pub fn from_env() -> Self {
         Self{
              date_format: match env::var("DATE_FORMAT")
             .unwrap_or("".to_string())

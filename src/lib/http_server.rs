@@ -34,7 +34,7 @@ pub struct Server {
     listener: TcpListener,
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
     pub log: Logger,
-    config: config::Config
+    pub config: config::Config
 }
 
 /*
@@ -75,7 +75,7 @@ impl Server {
 
         let addr = "127.0.0.1:".to_string() + &config.port;
 
-        let listener = TcpListener::bind(addr)
+        let listener = TcpListener::bind(addr.clone())
             .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
 
         // Инициализируем нашу Hash-map таблицу, которая будет хранить handlers для различных путей
@@ -93,7 +93,10 @@ impl Server {
             listener,
             handlers,
             log,
-            config
+            config: config::Config {
+                port : addr,
+                ..config
+            }
         })
     }
 

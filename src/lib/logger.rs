@@ -128,16 +128,6 @@ impl Logger {
 }
 
 mod logger_constants {
-    pub const DBUG: &str = "debug";
-    pub const INFO: &str = "info";
-    pub const WARN: &str = "warn";
-    pub const ERROR: &str = "error";
-    pub const ASIAN: &str = "asian";
-    pub const EUROPE: &str = "european";
-    pub const ISO : &str = "iso";
-    pub const US: &str = "us";
-    pub const H12FORMAT: &str = "h12";
-    pub const H24FORMAT: &str = "h24";
     pub const MOTD: &str = r"
     ____             __            
    / __ )____  _____/ /_____  _____

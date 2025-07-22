@@ -1,3 +1,4 @@
+
 // Файл, который лежит в src/bin/*.rs образует crate-исполняемый файл (main)
 // Из main можно пользоваться только тем, что выставлено наружу (pub) из библиотечного crate и корректно объявлено в lib.rs
 use backend::lib::handlers::handler_return_all_containers;
@@ -6,7 +7,16 @@ use backend::lib::req_res_structs::{BodyType, Response};
 use backend::lib::request::Request;
 
 fn main() {
-    let mut server = Server::new("127.0.0.1:8080").unwrap();
+
+
+    let mut ip_port = "127.0.0.1:".to_string();
+    {
+        let env_port = std::env::var("PORT").unwrap_or("8080".to_string());
+        ip_port.push_str(env_port.as_str());
+    }
+    let mut server = Server::new(ip_port.as_str()).unwrap();
+
+    server.log.debug(&format!("ip_port = {ip_port}"));
 
     // регистрация пары path и handlers в Hash-table
     server.GET("/container/", handler_return_all_containers); // 2ой аргумент это тип HandlerFn

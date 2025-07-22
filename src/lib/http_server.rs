@@ -31,7 +31,7 @@ const NOT_FOUND_RESPONSE: Response = Response {
 pub struct Server {
     listener: TcpListener,
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
-    log: Logger,
+    pub log: Logger,
 }
 
 /*
@@ -72,7 +72,11 @@ impl Server {
         // подключения, которые приходят на него
         // Например если "addr" будет являться чем-то типа "127.0.0.1:8080", то
         // 127.0.0.1 - айпи машины, а 8080 - порт прослушки соединения
+        
 
+        // Инициализация логгера
+        let log = Logger::new();
+        
         let listener = TcpListener::bind(addr)
             .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
 
@@ -85,7 +89,6 @@ impl Server {
         handlers.insert(Method::DELETE, HashMap::new());
         handlers.insert(Method::OTHER, HashMap::new());
 
-        let log = Logger::default();
 
         // Возвращаем наш объект сервера
         Ok(Self {

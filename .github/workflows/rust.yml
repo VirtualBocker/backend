@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -19,10 +24,26 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
-      - uses: giraffate/clippy-action@v1
+      # - uses: giraffate/clippy-action@v1
+      #   with:
+      #     reporter: 'github-pr-review'
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+          
+      # - uses: auguwu/clippy-action@1.4.0
+      #   with:
+      #     token: ${{secrets.GITHUB_TOKEN}}
+          
+      - uses: sksat/action-clippy@v1.1.1
+        if: github.event_name == 'push'
         with:
-          reporter: 'github-pr-review'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-check
+          level: info
+
+      - uses: sksat/action-clippy@v1.1.1
+        if: github.event_name == 'pull_request'
+        with:
+          reporter: github-pr-review
+          level: info
   
   build:
     runs-on: ubuntu-latest

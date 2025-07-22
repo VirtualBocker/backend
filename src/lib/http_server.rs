@@ -3,7 +3,7 @@ use crate::lib::config;
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
-    net::TcpListener,
+    net::{SocketAddr, TcpListener},
 };
 
 use crate::lib::{
@@ -34,7 +34,7 @@ pub struct Server {
     listener: TcpListener,
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
     pub log: Logger,
-    pub config: config::Config
+    pub config: config::Config,
 }
 
 /*
@@ -68,14 +68,11 @@ handlers                          // HashMap<Method, …>
 
 */
 
-
 impl Server {
     pub fn with_config(config: config::Config) -> Result<Server, ServerError> {
         let log = Logger::with_config(&config);
 
-        let addr = "127.0.0.1:".to_string() + &config.port;
-
-        let listener = TcpListener::bind(addr.clone())
+        let listener = TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], config.port)))
             .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
 
         // Инициализируем нашу Hash-map таблицу, которая будет хранить handlers для различных путей
@@ -87,50 +84,18 @@ impl Server {
         handlers.insert(Method::DELETE, HashMap::new());
         handlers.insert(Method::OTHER, HashMap::new());
 
-
         // Возвращаем наш объект сервера
         Ok(Self {
             listener,
             handlers,
             log,
-            config: config::Config {
-                port : addr,
-                ..config
-            }
+            config,
         })
     }
 
     // Новый экземпляр сервера
-    pub fn new(addr: &str) -> Result<Server, ServerError> {
-        // Привязываем наш сервак на адрес "addr", чтобы он считывал
-        // подключения, которые приходят на него
-        // Например если "addr" будет являться чем-то типа "127.0.0.1:8080", то
-        // 127.0.0.1 - айпи машины, а 8080 - порт прослушки соединения
-        
-
-        // Инициализация логгера
-        let log = Logger::default();
-        
-        let listener = TcpListener::bind(addr)
-            .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
-
-        // Инициализируем нашу Hash-map таблицу, которая будет хранить handlers для различных путей
-        let mut handlers: HashMap<Method, HashMap<&str, HandlerFn>> = HashMap::new();
-
-        handlers.insert(Method::GET, HashMap::new());
-        handlers.insert(Method::POST, HashMap::new());
-        handlers.insert(Method::PUT, HashMap::new());
-        handlers.insert(Method::DELETE, HashMap::new());
-        handlers.insert(Method::OTHER, HashMap::new());
-
-
-        // Возвращаем наш объект сервера
-        Ok(Self {
-            listener,
-            handlers,
-            log,
-            config:config::Config::default()
-        })
+    pub fn new() -> Result<Server, ServerError> {
+        Self::with_config(config::Config::default())
     }
 
     pub fn add_handler(
@@ -142,12 +107,11 @@ impl Server {
         let paths: &mut HashMap<&str, HandlerFn> = self.handlers.get_mut(&method).unwrap(); // Получаем Hash-map таблицу с путями и handlers
         if paths.contains_key(&path) {
             // в Hash-map таблице уже есть такой путь? лови ошибку
-            self.log.info(&format!(
-                "{method} handler with path '{path}' already registered!"
-            ));
-            return Err(ServerError::HandlerError(format!(
-                "{method} handler with path '{path}' already registered!"
-            )));
+
+            let err_msg = format!("{method} handler with path '{path}' already registered!");
+
+            self.log.info(&err_msg);
+            return Err(ServerError::HandlerError(err_msg));
         }
 
         paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
@@ -256,71 +220,6 @@ impl Server {
     Index 15 │  []
      */
 
-    /*
-    // Добавляет GET handler на какой-то path
-    #[allow(non_snake_case)]
-    pub fn GET(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError> {
-        let paths: &mut HashMap<String, fn(Request) -> Response> = self.handlers.get_mut(&Method::GET).unwrap(); // Получаем Hash-map таблицу с путями и handlers
-        if paths.contains_key(&path) {
-            // в Hash-map таблице уже есть такой путь? лови ошибку
-            return Err(ServerError::HandlerError(format!(
-                "GET handler with path '{path}' already registered!"
-            )));
-        }
-
-        paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
-
-        Ok(())
-    }
-
-    // Добавляет POST handler на какой-то path
-    #[allow(non_snake_case)]
-    pub fn POST(&mut self, path: String, handler: HandlerFn) -> Result<(), ServerError>{
-        let paths: &mut HashMap<String, fn(Request) -> Response> = self.handlers.get_mut(&Method::GET).unwrap(); // Получаем Hash-map таблицу с путями и хэндлерами
-        if paths.contains_key(&path) {
-            // в Hash-map таблице уже есть такой путь? лови ошибку
-            return Err(ServerError::HandlerError(format!(
-                "POST handler with path '{path}' already registered!"
-            )));
-        }
-
-        paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
-
-        Ok(())
-    }
-
-    // Добавляет PUT handler на какой-то path
-    #[allow(non_snake_case)]
-    pub fn PUT(&mut self, path: String, handler: HandlerFn) -> Result<(),ServerError> {
-        let paths: &mut HashMap<String, fn(Request) -> Response> = self.handlers.get_mut(&Method::GET).unwrap(); // Получаем Hash-map таблицу с путями и хэндлерами
-        if paths.contains_key(&path) {
-            // в Hash-map таблице уже есть такой путь? лови ошибку
-            return Err(ServerError::HandlerError(format!(
-                "PUT handler with path '{path}' already registered!"
-            )));
-        }
-
-        paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
-
-        Ok(())
-    }
-
-    // Добавляет DELETE handler на какой-то path
-    #[allow(non_snake_case)]
-    pub fn DELETE(&mut self, path: String, handler: HandlerFn) -> Result<(),ServerError> {
-        let paths: &mut HashMap<String, fn(Request) -> Response> = self.handlers.get_mut(&Method::GET).unwrap(); // Получаем Hash-map таблицу с путями и хэндлерами
-        if paths.contains_key(&path) {
-            // в Hash-map таблице уже есть такой путь? лови ошибку
-            return Err(ServerError::HandlerError(format!(
-                "DELETE handler with path '{path}' already registered!"
-            )));
-        }
-
-        paths.insert(path, handler); // добавляем handler в Hash-map таблицу по заданному пути
-
-        Ok(())
-    }
-     */
     // ПОКА НИ НАДА
     // pub fn middleware<F>(&mut self, middleware: F)
     // where F: Fn(Request) -> Option<Request> {
@@ -339,9 +238,12 @@ impl Server {
     // 7. Отправляем респонс клиенту
     // 8. ???
     // 9. PROFIT!!!
-    pub fn start(&self) {
-        self.log.motd();
-        self.log.info(&"Server started".to_string());
+    pub fn start(&self) -> Result<(), ServerError> {
+        Logger::motd();
+
+        let port = self.listener.local_addr().unwrap().port();
+
+        self.log.info(&format!("Server started at port: {port}"));
 
         // Проходимся по бесконечному итератору входящих подключений
         // Почему бесконечный? Потому-что даже когда подключения закончатся,
@@ -429,5 +331,6 @@ impl Server {
                 }
             }
         }
+        Ok(())
     }
 }

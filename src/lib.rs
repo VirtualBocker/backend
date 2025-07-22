@@ -8,4 +8,5 @@ pub mod lib {
     pub mod req_res_structs;
     pub mod request;
     pub mod server_errors;
+    pub mod config;
 }

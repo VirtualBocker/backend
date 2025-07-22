@@ -1,5 +1,5 @@
 use std::env;
-
+use crate::lib::config;
 pub mod logger_utils {
 
     pub enum MessageType {
@@ -8,15 +8,6 @@ pub mod logger_utils {
         Warn,
         Error,
         Critical,
-    }
-    
-    #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
-    pub enum LogLevel {
-        #[default]
-        Info,
-        Dbug,
-        Warn,
-        Error
     }
     
     impl MessageType {
@@ -29,53 +20,37 @@ pub mod logger_utils {
                 Self::Critical => "[ CRIT ]".to_string(),
             }
         }
-    }
-    
-    #[derive(Default, Copy, Clone, Debug)]
-    pub enum TimeFormat {
-        H12Format, // 12 часовой формат
-        #[default]
-        H24Format, // 24 часовой формат
-    }
-    
-    #[derive(Default, Copy, Clone, Debug)]
-    pub enum DateFormat {
-        Asian,  // yyyy/mm/dd
-        US,     // mm/dd/yyyy
-        Europe, // dd.mm.yyyy
-        #[default]
-        ISO8601, // yyyy-mm-dd
-    }
+    }    
 }
 
 mod time_date_utils {
-    use crate::lib::logger::logger_utils;
+    use crate::lib::config;
     use chrono::Local;
     
-    pub fn time_string(time_format: logger_utils::TimeFormat) -> String {
+    pub fn time_string(time_format: config::config_enums::TimeFormat) -> String {
         let now = Local::now();
         match time_format {
-            logger_utils::TimeFormat::H12Format => now.time().format("%I:%M:%S %p").to_string(),
-            logger_utils::TimeFormat::H24Format => now.time().format("%H:%M:%S").to_string(),
+            config::config_enums::TimeFormat::H12Format => now.time().format("%I:%M:%S %p").to_string(),
+            config::config_enums::TimeFormat::H24Format => now.time().format("%H:%M:%S").to_string(),
         }
     }
     
-    pub fn date_string(date_format: logger_utils::DateFormat) -> String {
+    pub fn date_string(date_format: config::config_enums::DateFormat) -> String {
         let now = Local::now();
         match date_format {
-            logger_utils::DateFormat::Asian => now.date_naive().format("%Y/%m/%d").to_string(),
-            logger_utils::DateFormat::Europe => now.date_naive().format("%d.%m.%Y").to_string(),
-            logger_utils::DateFormat::ISO8601 => now.date_naive().format("%Y-%m-%d").to_string(),
-            logger_utils::DateFormat::US => now.date_naive().format("%m/%d/%Y").to_string(),
+            config::config_enums::DateFormat::Asian => now.date_naive().format("%Y/%m/%d").to_string(),
+            config::config_enums::DateFormat::Europe => now.date_naive().format("%d.%m.%Y").to_string(),
+            config::config_enums::DateFormat::ISO8601 => now.date_naive().format("%Y-%m-%d").to_string(),
+            config::config_enums::DateFormat::US => now.date_naive().format("%m/%d/%Y").to_string(),
         }
     }
 }
 
 #[derive(Default, Debug)]
 pub struct Logger {
-    times: logger_utils::TimeFormat,
-    dates: logger_utils::DateFormat,
-    levels:logger_utils::LogLevel,
+    times: config::config_enums::TimeFormat,
+    dates: config::config_enums::DateFormat,
+    levels:config::config_enums::LogLevel,
 }
 
 impl Logger {
@@ -91,20 +66,20 @@ impl Logger {
                 "💥 \x1b[91m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ),
-            logger_utils::MessageType::Warn =>  if self.levels == logger_utils::LogLevel::Warn || 
-            self.levels == logger_utils::LogLevel::Dbug ||
-            self.levels == logger_utils::LogLevel::Info { 
+            logger_utils::MessageType::Warn =>  if self.levels == config::config_enums::LogLevel::Warn || 
+            self.levels == config::config_enums::LogLevel::Dbug ||
+            self.levels == config::config_enums::LogLevel::Info { 
             println!(
                 "⚠️  \x1b[33m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             ) },
-            logger_utils::MessageType::Debug => if self.levels == logger_utils::LogLevel::Dbug ||
-            self.levels == logger_utils::LogLevel::Info{
+            logger_utils::MessageType::Debug => if self.levels == config::config_enums::LogLevel::Dbug ||
+            self.levels == config::config_enums::LogLevel::Info{
             println!(
                 "🛠️  \x1b[36m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
             )},
-            logger_utils::MessageType::Info =>  if self.levels == logger_utils::LogLevel::Info {
+            logger_utils::MessageType::Info =>  if self.levels == config::config_enums::LogLevel::Info {
             println!(
                 "🚬 \x1b[35m{}\x1b[0m {date} {time} :: {_msg}",
                 _type.prefix()
@@ -141,39 +116,15 @@ impl Logger {
     }
 }
 
+
 impl Logger {
-    pub fn new() -> Self {
+    pub fn with_config(config: &config::Config) -> Self{
         Self {
-            dates: match env::var("DATE_FORMAT")
-            .unwrap_or("".to_string())
-            .as_str() 
-            {
-                logger_constants::ISO       =>  logger_utils::DateFormat::ISO8601,
-                logger_constants::ASIAN     =>  logger_utils::DateFormat::Asian,
-                logger_constants::EUROPE    =>  logger_utils::DateFormat::Europe,
-                logger_constants::US        =>  logger_utils::DateFormat::US,
-                _ => logger_utils::DateFormat::default()
-            },
-            times: match env::var("TIME_FORMAT")
-            .unwrap_or("".to_string())
-            .as_str() 
-            {
-                logger_constants::H12FORMAT => logger_utils::TimeFormat::H12Format,
-                logger_constants::H24FORMAT => logger_utils::TimeFormat::H24Format,
-                _ => logger_utils::TimeFormat::default()
-            },
-            levels: match env::var("LOG_LEVEL")
-            .unwrap_or("".to_string())
-            .as_str() 
-            {
-                logger_constants::DBUG  =>  logger_utils::LogLevel::Dbug,
-                logger_constants::INFO  =>  logger_utils::LogLevel::Info,
-                logger_constants::WARN  =>  logger_utils::LogLevel::Warn,
-                logger_constants::ERROR =>  logger_utils::LogLevel::Error,
-                _                       =>  logger_utils::LogLevel::default(),
-            }
+            times:config.time_format,
+            dates:config.date_format,
+            levels:config.log_level
         }
-    }
+    } 
 }
 
 mod logger_constants {
@@ -195,3 +146,4 @@ mod logger_constants {
 /_____/\____/\___/_/|_|\___/_/
 ";
 }
+

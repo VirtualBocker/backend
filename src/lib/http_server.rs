@@ -1,3 +1,5 @@
+use crate::lib::config;
+
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
@@ -32,6 +34,7 @@ pub struct Server {
     listener: TcpListener,
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
     pub log: Logger,
+    config: config::Config
 }
 
 /*
@@ -65,7 +68,35 @@ handlers                          // HashMap<Method, …>
 
 */
 
+
 impl Server {
+    pub fn with_config(config: config::Config) -> Result<Server, ServerError> {
+        let log = Logger::with_config(&config);
+
+        let addr = "127.0.0.1:".to_string() + &config.port;
+
+        let listener = TcpListener::bind(addr)
+            .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
+
+        // Инициализируем нашу Hash-map таблицу, которая будет хранить handlers для различных путей
+        let mut handlers: HashMap<Method, HashMap<&str, HandlerFn>> = HashMap::new();
+
+        handlers.insert(Method::GET, HashMap::new());
+        handlers.insert(Method::POST, HashMap::new());
+        handlers.insert(Method::PUT, HashMap::new());
+        handlers.insert(Method::DELETE, HashMap::new());
+        handlers.insert(Method::OTHER, HashMap::new());
+
+
+        // Возвращаем наш объект сервера
+        Ok(Self {
+            listener,
+            handlers,
+            log,
+            config
+        })
+    }
+
     // Новый экземпляр сервера
     pub fn new(addr: &str) -> Result<Server, ServerError> {
         // Привязываем наш сервак на адрес "addr", чтобы он считывал
@@ -75,7 +106,7 @@ impl Server {
         
 
         // Инициализация логгера
-        let log = Logger::new();
+        let log = Logger::default();
         
         let listener = TcpListener::bind(addr)
             .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
@@ -95,6 +126,7 @@ impl Server {
             listener,
             handlers,
             log,
+            config:config::Config::default()
         })
     }
 

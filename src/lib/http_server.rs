@@ -358,6 +358,19 @@ impl Server {
                             let mut found_path = false;
 
                             for (key, value) in self.handlers.get(&request.method).unwrap() {
+                                // self.handlers - это HashMap<Method, HashMap<String, HandlerFn>> (поле struct Server)
+
+                                // self.handlers.get(&request.method)
+                                // попытка найти на 1м уровне HashMap запись по ключу типа Method
+                                // например .get(POST) ищу на 1м уровне HashMap table ключ = Method::POST
+                                //           возвращает Option<&HashMap<String, HandlerFn>>
+                                //           если запись есть, возвращается Some(HashMap<String, HanlerFn>)
+                                //           если нет, возвращаю None
+
+                                // .unwrap() достаёт ссылку на значение из 1-го уровня HashMap table (т.е. из Some) => &HashMap<String, HandlerFn>
+
+                                // Далее происходит итерирование по 2му уровню HashMap table
+
                                 if request.is_similar(key) {
                                     request.parse_args(key);
 

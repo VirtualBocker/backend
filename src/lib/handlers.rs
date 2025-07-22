@@ -80,7 +80,7 @@ pub fn handler_return_all_containers(_request: &Request) -> Response {
             // Оборачиваем наш Map<String, serde_json::Value> в Value::Object,
             // чтобы получить единый JSON‑объект (serde_json::Value), с которым
             // уже могут работать все функции сериализации из serde_json. */
-            println!("{:?}", json_body);
+            println!("{json_body:?}");
 
             // подсчиатем количество символов в serde_json::Value
             //let string: String = serde_json::to_string(&json_body).expect("serde_json::to_string error"); // чтобы отбросить ошибку
@@ -116,14 +116,14 @@ fn check_existence_container(container_id: &str) -> Response {
         Ok(all_my_containers) => {
             let mut flag: bool = false;
             for one_container in all_my_containers {
-                if &one_container.label == container_id {
+                if one_container.label.as_str() == container_id {
                     flag = true;
                 }
             }
 
             if !flag {
                 let logger = Logger::default();
-                logger.error(&format!("Can't find container {}:", container_id));
+                logger.error(&format!("Can't find container {container_id}:"));
                 return Response {
                     // мой возвращаемый Response
                     response_code: 500, // Internal Server Error
@@ -143,15 +143,15 @@ fn check_existence_container(container_id: &str) -> Response {
             };
         }
     };
-    return Response {
+    Response {
         // мой возвращаемый Response
         response_code: 200, // Ok - нашли
         headers: None, // заголовки Content-Type: application/json и Content-Length: {number} будут добавлены в функции deser_response
         body: None,
-    };
+    }
 }
 
-fn get_container_id<'a>(request: &'a Request) -> Result<&'a str, Response> {
+fn get_container_id(request: &Request) -> Result<& str, Response> {
     request
         .rest_params
         .get("id")
@@ -273,8 +273,7 @@ fn do_docker_command(
         Ok(_) => {
             let logger: Logger = Logger::default();
             logger.info(&format!(
-                "Sucessfully {} container {}!",
-                word_in_past_simple, container_id
+                "Sucessfully {word_in_past_simple} container {container_id}!",
             ));
             Response {
                 response_code: 200, // Ok (успешно stopped)
@@ -285,8 +284,7 @@ fn do_docker_command(
         Err(e) => {
             let logger: Logger = Logger::default();
             logger.error(&format!(
-                "Failed to {} container {}: {}",
-                word_in_present_simple, container_id, e
+                "Failed to {word_in_present_simple} container {container_id}: {e}",
             ));
             Response {
                 response_code: 500, // Internal Server Error
@@ -352,8 +350,7 @@ pub fn handler_start_container(request: &Request) -> Response {
     if my_data.is_restarting {
         let logger: Logger = Logger::default();
         logger.warn(&format!(
-            "Failed to start container {}. It is restarting!",
-            container_id
+            "Failed to start container {container_id}. It is restarting!"
         ));
         return Response {
             response_code: 409, // Conflict
@@ -365,8 +362,7 @@ pub fn handler_start_container(request: &Request) -> Response {
     if my_data.is_running {
         let logger: Logger = Logger::default();
         logger.warn(&format!(
-            "Failed to start container {}. It is alredy running! Use restart instead!",
-            container_id
+            "Failed to start container {container_id}. It is alredy running! Use restart instead!"
         ));
         return Response {
             response_code: 409, // Conflict
@@ -426,7 +422,7 @@ pub fn handler_stop_container(request: &Request) -> Response {
 
     if my_data.status.starts_with("exited") {
         let logger: Logger = Logger::default();
-        logger.warn(&format!("Container {} is already stopped!", container_id));
+        logger.warn(&format!("Container {container_id} is already stopped!"));
         return Response {
             response_code: 409, // Conflict
             headers: None,
@@ -437,8 +433,7 @@ pub fn handler_stop_container(request: &Request) -> Response {
     if my_data.is_dead {
         let logger: Logger = Logger::default();
         logger.warn(&format!(
-            "Failed to stop container {}. It is dead!",
-            container_id
+            "Failed to stop container {container_id}. It is dead!"
         ));
         return Response {
             response_code: 409, // Conflict
@@ -499,8 +494,7 @@ pub fn handler_restart_container(request: &Request) -> Response {
     if my_data.is_dead {
         let logger: Logger = Logger::default();
         logger.warn(&format!(
-            "Failed to restart container {}. It is dead!",
-            container_id
+            "Failed to restart container {container_id}. It is dead!"
         ));
         return Response {
             response_code: 409, // Conflict
@@ -512,8 +506,7 @@ pub fn handler_restart_container(request: &Request) -> Response {
     if my_data.is_restarting {
         let logger: Logger = Logger::default();
         logger.warn(&format!(
-            "Failed to restart container {}. It is restarting!",
-            container_id
+            "Failed to restart container {container_id}. It is restarting!"            
         ));
         return Response {
             response_code: 409, // Conflict
@@ -526,5 +519,5 @@ pub fn handler_restart_container(request: &Request) -> Response {
     // ------------------------------------------------------------------
 
     // все остальные случаи: просто выполняем команду docker restart <label>
-    return do_docker_command(container_id, "restart", "restarted");
+    do_docker_command(container_id, "restart", "restarted")
 }

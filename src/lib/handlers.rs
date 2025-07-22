@@ -337,8 +337,7 @@ pub fn handler_start_container(request: &Request) -> Response {
     if my_data.is_dead {
         let logger: Logger = Logger::default();
         logger.warn(&format!(
-            "Failed to start container {}. It is dead!",
-            container_id
+            "Failed to start container {container_id}. It is dead!"
         ));
         return Response {
             response_code: 409, // Conflict
@@ -374,7 +373,7 @@ pub fn handler_start_container(request: &Request) -> Response {
     // ------------------------------------------------------------------
     // ------ №5. Выполним команду docker <command> <label> -------------
     // ------------------------------------------------------------------
-    return do_docker_command(container_id, "start", "started");
+    do_docker_command(container_id, "start", "started")
     // все остальные случаи: просто выполняем команду docker start <label>
 }
 
@@ -447,7 +446,7 @@ pub fn handler_stop_container(request: &Request) -> Response {
     // ------------------------------------------------------------------
 
     // все остальные случаи: просто выполняем команду docker stop <label>
-    return do_docker_command(container_id, "stop", "stopped");
+    do_docker_command(container_id, "stop", "stopped")
 }
 
 pub fn handler_restart_container(request: &Request) -> Response {

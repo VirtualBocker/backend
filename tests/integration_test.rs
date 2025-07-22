@@ -1,15 +1,19 @@
 use std::thread::{JoinHandle, spawn};
 
 use backend::lib::{
+    config::Config,
     http_server::Server,
     req_res_structs::{BodyType, Response},
     request::Request,
+    server_errors::ServerError,
 };
 
 const IP: &str = "127.0.0.1:8080";
 
-fn server_start() -> JoinHandle<()> {
-    let mut server = Server::new(IP).unwrap();
+fn server_start() -> JoinHandle<Result<(), ServerError>> {
+    let config = Config::default().with_port(8080);
+
+    let mut server = Server::with_config(config).unwrap();
 
     // регистрация пары path и handlers в Hash-table
     server.GET("/container/", |_| Response {

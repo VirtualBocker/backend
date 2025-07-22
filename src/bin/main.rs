@@ -1,4 +1,4 @@
-
+use backend::lib::config::Config;
 // Файл, который лежит в src/bin/*.rs образует crate-исполняемый файл (main)
 // Из main можно пользоваться только тем, что выставлено наружу (pub) из библиотечного crate и корректно объявлено в lib.rs
 use backend::lib::handlers::{
@@ -10,16 +10,13 @@ use backend::lib::http_server::Server;
 // use backend::lib::request::Request;
 
 fn main() {
+    let conf = Config::from_env().with_port(8080);
 
+    let mut server = Server::with_config(conf).unwrap();
 
-    let mut ip_port = "127.0.0.1:".to_string();
-    {
-        let env_port = std::env::var("PORT").unwrap_or("8080".to_string());
-        ip_port.push_str(env_port.as_str());
-    }
-    let mut server = Server::new(ip_port.as_str()).unwrap();
-
-    server.log.debug(&format!("ip_port = {ip_port}"));
+    server
+        .log
+        .debug(&format!("ip_port = {}", server.config.port));
 
     // регистрация пары path и handlers в Hash-table
     server.GET("/container/", handler_return_all_containers); // 2ой аргумент это тип HandlerFn
@@ -55,7 +52,7 @@ fn main() {
     //     ))),
     // });
 
-    server.start();
+    server.start().unwrap();
 }
 
 /* Как сейчас выглядит Hash-table

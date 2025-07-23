@@ -1,7 +1,7 @@
 use crate::lib::docker_works::{ContainerError, ContainerInfo, parse_docker_ps_a};
 use crate::lib::logger::Logger;
 // структура для информации про один мой контейнер
-use crate::lib::req_res_structs::{BodyType, Response}; // стрктура ответа
+use crate::lib::req_res_structs::{BodyType, DEFAULT_RESPONSES, Response}; // стрктура ответа
 use crate::lib::request::Request; // структура запроса
 use serde_json;
 
@@ -99,94 +99,112 @@ pub fn handler_return_all_containers(_request: &Request) -> Response {
         Err(e) => {
             let logger = Logger::default();
             logger.error(&format!("Container error: {e}"));
-            Response {
-                // мой возвращаемый Response
-                response_code: 500,
-                headers: None, // заголовки Content-Type: application/json и Content-Length: {number} будут добавлены в функции deser_response
-                body: None,
-            }
+            DEFAULT_RESPONSES.internal_server_error // 500
         }
     }
 }
 
+// функция ищет совпадение имени контейнера и имени контейнеров в HashMap table
 fn check_existence_container(container_id: &str) -> Response {
+    // получим результат работы функции parse_docker_ps_a в виде Result<Vec<ContainerInfo>, ContainerError>
     let rezult: Result<Vec<ContainerInfo>, ContainerError> = parse_docker_ps_a();
 
+    // деструктуризация enum rezult
     match rezult {
         Ok(all_my_containers) => {
-            let mut flag: bool = false;
+            // если вернулся список контейнеров
+            let mut flag: bool = false; // флаг: false -- не нашлось совпадений в HashMap table, true - совпадение найдено
             for one_container in all_my_containers {
+                // итератор по всем контейнерам, который вернулись из функции parse_docker_ps_a()
                 if one_container.label.as_str() == container_id {
-                    flag = true;
+                    // сравниваем два &str: если они равны, то мы нашли искомый контейнер в HashMap table
+                    flag = true; // true - совпадение найдено
+                    break; // выходим из цикла
                 }
             }
 
             if !flag {
+                // если не нашли, то выведем сообщение через Logger и вернем Response 500 (Internal Server Error)
                 let logger = Logger::default();
                 logger.error(&format!("Can't find container {container_id}:"));
-                return Response {
-                    // мой возвращаемый Response
-                    response_code: 500, // Internal Server Error
-                    headers: None, // заголовки Content-Type: application/json и Content-Length: {number} будут добавлены в функции deser_response
-                    body: None,
-                };
+                DEFAULT_RESPONSES.internal_server_error // 500
+            } else {
+                // если flag == true, то вернем Response 200 (Ok)
+                DEFAULT_RESPONSES.ok // 200 -- Ok (нашли)
             }
         }
         Err(e) => {
+            // если вернулась ошибка ContainerError, то выведем сообщение об ошибке через Logger и вернем Response 500 (Internal Server Error)
             let logger = Logger::default();
             logger.error(&format!("Container error: {e}"));
-            return Response {
-                // мой возвращаемый Response
-                response_code: 500, // Internal Server Error
-                headers: None, // заголовки Content-Type: application/json и Content-Length: {number} будут добавлены в функции deser_response
-                body: None,
-            };
+            DEFAULT_RESPONSES.internal_server_error // 500
         }
-    };
-    Response {
-        // мой возвращаемый Response
-        response_code: 200, // Ok - нашли
-        headers: None, // заголовки Content-Type: application/json и Content-Length: {number} будут добавлены в функции deser_response
-        body: None,
     }
 }
 
-fn get_container_id(request: &Request) -> Result<& str, Response> {
+// функция получаем id контейнера из Request
+fn get_container_id(request: &Request) -> Result<&str, Response> {
     request
-        .rest_params
-        .get("id")
-        .map(|s| s.as_str())
+        .rest_params // обращаемся к полю .rest_params => берем HashMap<String, String> с параметрами пути
+        .get("id") // запрашиваем значение по ключу "id" => возвращаем Option<&String>
+        .map(|s| s.as_str()) // если получено Some(&String), то применим функцию .as_str и вернем полученный результат в оболочке: Option<&str>
         .ok_or_else(|| {
+            // Если получено None, то вызовем замыкание => результат замыкания будет передан в Error в Result (в данном случае Err(Response))
+            // Лямда-функция (замыкание)
+            // 1. Выведем сообщение в logger
             let logger = Logger::default();
-            logger.warn(&format!("Failed to find container_id (name)!"));
-            Response {
-                response_code: 400,
-                headers: None,
-                body: None,
-            }
+            logger.warn(&format!(
+                "Failed to find container_id {}!",
+                request.rest_params.get("id").unwrap()
+            ));
+            // 2. Отправим Response
+            DEFAULT_RESPONSES.bad_request // 400
         })
 }
 
+/*Общий вид:
+    "State": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 0,
+        "Error": "",
+        "StartedAt": "2025-07-22T15:26:10.849191622Z",
+        "FinishedAt": "2025-07-23T04:51:01.571691759Z"
+    },
+*/
+// Структура куда будут считываться данные из утилиты docker
+// Команда: "docker inspect <label>"
+#[derive(Default)]
+#[allow(dead_code)] // поле is_paused на данный момент не зайдествовано, но данные считываются
 struct ReadStatus {
-    status: String,
-    is_running: bool,
-    is_paused: bool,
-    is_restarting: bool,
-    is_dead: bool,
+    status: String, // Status: running, exited, created, paused, restarting, removing, dead
+    is_running: bool, // Запущен: true/false
+    is_paused: bool, // Находится на паузе: true/false
+    is_restarting: bool, // В процессе перезапуск: true/false
+    is_dead: bool,  // Мертв: true/false
 }
 
+// Реализация конструктора default для объекта типа ReadStatus => можно заменить атрибутом Default
+/*
 impl Default for ReadStatus {
     fn default() -> Self {
+        // не принимает параметры и возвращает себя
         Self {
-            status: String::default(),
-            is_running: false,
+            status: String::default(), // Пустая строка для Status
+            is_running: false,         // для остальных полей по умолчанию false
             is_paused: false,
             is_restarting: false,
             is_dead: false,
         }
     }
-}
+}*/
 
+// Создаём экземпляр структуры ReadStatus и заполняем его данными
 fn fill_struct_read_status(container_id: &str) -> Result<ReadStatus, Response> {
     // ------------------------------------------------------------------
     // ------ №1. Запускаем docker inspect ------------------------------
@@ -199,21 +217,11 @@ fn fill_struct_read_status(container_id: &str) -> Result<ReadStatus, Response> {
             .arg(container_id)
             .output();
 
-    /* Что сделает `docker start`:
-    + 1. `Dead = true`       ⇒ контейнер «мертв», поднять его не получится → 409 Conflict
-    + 2. `Restarting = true` ⇒ контейнер уже в состоянии запуска/перезапуска → 409 Conflict
-    */
-
-    // Распакуем inspect:
+    // Распакуем inspect (деструктуризация):
     let inspect_output = match inspect {
         Ok(out) => out,
         Err(_e) => {
-            return Err(Response {
-                // мой возвращаемый Responce (используем return, чтобы ничего не вернуть в переменную inspect_output, а сразу выйти из функции)
-                response_code: 500, // Internal Server Error
-                headers: None,
-                body: None,
-            });
+            return Err(DEFAULT_RESPONSES.internal_server_error); // 500
         }
     };
     // ------------------------------------------------------------------
@@ -221,80 +229,89 @@ fn fill_struct_read_status(container_id: &str) -> Result<ReadStatus, Response> {
     // ------------------------------------------------------------------
     //let raw = &inspect_output.stdout;          // &[u8]
     let state_str: String = String::from_utf8_lossy(&inspect_output.stdout).into_owned();
-    // &output.stdout -- обращаюсь к памяти, в которой хранится std::process::Output
+    // &inspect_output.stdout -- обращаюсь к памяти, в которой хранится std::process::Output
     // from_utf8_lossy -- вернет Result<String, FromUtf8Error>
     // .into_owned() -- Извлекает данные (String)
 
-    let mut parts: std::str::SplitWhitespace<'_> = state_str.split_whitespace(); // .slit_whitespace() -- разобьём String по пробелам
+    let mut parts: std::str::SplitWhitespace<'_> = state_str.split_whitespace(); // итератор по подстрокам, разделенным пробелами
+    //          .slit_whitespace() -- разобьём String по пробелам
+    //          все итераторы по умолчанию «сидят» перед первым элементом.
+    //          поэтому первый вызов `parts.next()` вернёт первый фрагмент строки.
+
     // ------------------------------------------------------------------
     // ------ №3. Наполняем ReadStatus ------------------------------------
     // ------------------------------------------------------------------
-    let mut new_data: ReadStatus = ReadStatus::default();
-    new_data.status = parts.next().unwrap().to_string();
-    // .next() возвращает Option<&str> т.е. следующая подстрока из split_whitespace() (в обертке Option)
-    // .unwrap_or()
-    new_data.is_running = parts
-        .next() // .next() -- возвращает Option<&str> т.е. следующая подстрока из split_whitespace() (в обертке Option)
-        .unwrap_or("false") // .unwrap_or("false") -- подставим false, если Option::None
-        .parse::<bool>() // .parse::<bool>() -- конвертируем true/false в bool (возвращает Result<bool, ParseBoolError>)
-        .unwrap_or(false); // .unwrap_or(false) -- если .parse вернула error, то будем использовать false по умолчанию
-    new_data.is_paused = parts
-        .next()
-        .unwrap_or("false")
-        .parse::<bool>()
-        .unwrap_or(false);
-    new_data.is_restarting = parts
-        .next()
-        .unwrap_or("false")
-        .parse::<bool>()
-        .unwrap_or(false);
-    new_data.is_dead = parts
-        .next()
-        .unwrap_or("false")
-        .parse::<bool>()
-        .unwrap_or(false);
-    return Ok(new_data);
+    let new_data: ReadStatus = ReadStatus {
+        // Переменная для чтения данных в ReadStatus => заполним её с помощью конструктора default()
+        status: parts.next().unwrap().to_string(),
+        // .next() возвращает Option<&str> т.е. следующая подстрока из split_whitespace() (в обертке Option)
+        // .unwrap_or()
+        is_running: parts
+            .next() // .next() -- возвращает Option<&str> т.е. следующая подстрока из split_whitespace() (в обертке Option)
+            .unwrap_or("false") // .unwrap_or("false") -- подставим false, если Option::None
+            .parse::<bool>() // .parse::<bool>() -- конвертируем true/false в bool (возвращает Result<bool, ParseBoolError>)
+            .unwrap_or(false), // .unwrap_or(false) -- если .parse вернула error, то будем использовать false по умолчанию
+        is_paused: parts
+            .next()
+            .unwrap_or("false")
+            .parse::<bool>()
+            .unwrap_or(false),
+        is_restarting: parts
+            .next()
+            .unwrap_or("false")
+            .parse::<bool>()
+            .unwrap_or(false),
+        is_dead: parts
+            .next()
+            .unwrap_or("false")
+            .parse::<bool>()
+            .unwrap_or(false),
+    };
+    Ok(new_data)
 }
 
+// Функция для выполнения докер команды
+// Команда: docker <команда> <label>
+//     т.е. docker <word_in_present_simple> <container_id>
 fn do_docker_command(
-    container_id: &str,
-    word_in_present_simple: &str,
-    word_in_past_simple: &str,
+    container_id: &str,           // label контейнера
+    word_in_present_simple: &str, // слово, которое будет использовано для <команда>
+    word_in_past_simple: &str, // слово, которое будет использовано для logger, чтобы сообщить об успешном выполнении команды
 ) -> Response {
     let docker_start: Result<std::process::Output, std::io::Error> =
         std::process::Command::new("docker")
-            .arg(word_in_present_simple.to_string()) // аргумент для stop контейнера
+            .arg(word_in_present_simple) // аргумент для stop контейнера
             .arg(container_id) // аргумент для имени контейнера, который stop
             .output(); // .output() блокирует текущий поток, пока процесс не будет завершен
     // output возвращает Result<_,std::io::Error>.
     // output - запуск нашей команды: docker <action> <label>
 
+    // Деструктуризация enum для docker_start
     match docker_start {
-        Ok(_) => {
+        Ok(_smth) => {
+            // Если возвращено Ok(), то
+            // 1. отправим сообщение в логгер об успешном выполнении команды docker
             let logger: Logger = Logger::default();
             logger.info(&format!(
                 "Sucessfully {word_in_past_simple} container {container_id}!",
             ));
-            Response {
-                response_code: 200, // Ok (успешно stopped)
-                headers: None,
-                body: None,
-            }
+            // 2. Вернем из функции Reponse Ok
+            DEFAULT_RESPONSES.ok // Ok, 200 (успешно stopped)
         }
         Err(e) => {
+            // Если возвращена Err(), то
+            // 1. отправим сообщение в логгер об ошибке выполнении команды docker
             let logger: Logger = Logger::default();
             logger.error(&format!(
                 "Failed to {word_in_present_simple} container {container_id}: {e}",
             ));
-            Response {
-                response_code: 500, // Internal Server Error
-                headers: None,
-                body: None,
-            }
+            // 2. Вернем из функции Reponse Internal Server Error
+            DEFAULT_RESPONSES.internal_server_error // 500
         }
     }
 }
 
+// функция-handler, которая отрабатывает команду docker: docker start <label>
 pub fn handler_start_container(request: &Request) -> Response {
     // Нужно передать команду на start контейнеру с определенным label = :id
     // :id хранится в request в поле rest_params (это Hash-table)
@@ -311,8 +328,8 @@ pub fn handler_start_container(request: &Request) -> Response {
     // ------ №2. Проверим, что такой id (<label>) существует------------
     // ------------------------------------------------------------------
     let resp_check: Response = check_existence_container(container_id);
-    if resp_check.response_code == 500 {
-        // Internal Server Error
+    if resp_check == DEFAULT_RESPONSES.internal_server_error {
+        // 500
         return resp_check;
     }
 
@@ -339,11 +356,7 @@ pub fn handler_start_container(request: &Request) -> Response {
         logger.warn(&format!(
             "Failed to start container {container_id}. It is dead!"
         ));
-        return Response {
-            response_code: 409, // Conflict
-            headers: None,
-            body: None,
-        };
+        return DEFAULT_RESPONSES.conflict; // 409
     }
 
     if my_data.is_restarting {
@@ -351,11 +364,7 @@ pub fn handler_start_container(request: &Request) -> Response {
         logger.warn(&format!(
             "Failed to start container {container_id}. It is restarting!"
         ));
-        return Response {
-            response_code: 409, // Conflict
-            headers: None,
-            body: None,
-        };
+        return DEFAULT_RESPONSES.conflict; // 409
     }
 
     if my_data.is_running {
@@ -363,11 +372,7 @@ pub fn handler_start_container(request: &Request) -> Response {
         logger.warn(&format!(
             "Failed to start container {container_id}. It is alredy running! Use restart instead!"
         ));
-        return Response {
-            response_code: 409, // Conflict
-            headers: None,
-            body: None,
-        };
+        return DEFAULT_RESPONSES.conflict; // 409
     }
 
     // ------------------------------------------------------------------
@@ -377,6 +382,7 @@ pub fn handler_start_container(request: &Request) -> Response {
     // все остальные случаи: просто выполняем команду docker start <label>
 }
 
+// функция-handler, которая отрабатывает команду docker: docker stop <label>
 pub fn handler_stop_container(request: &Request) -> Response {
     // Нужно передать команду stop контейнеру с определенным label = :id
     // :id хранится в request в поле rest_params (это Hash-table)
@@ -393,8 +399,8 @@ pub fn handler_stop_container(request: &Request) -> Response {
     // ------ №2. Проверим, что такой id (<label>) существует------------
     // ------------------------------------------------------------------
     let resp_check: Response = check_existence_container(container_id);
-    if resp_check.response_code == 500 {
-        // Internal Server Error
+    if resp_check == DEFAULT_RESPONSES.internal_server_error {
+        // 500
         return resp_check;
     }
 
@@ -421,12 +427,10 @@ pub fn handler_stop_container(request: &Request) -> Response {
 
     if my_data.status.starts_with("exited") {
         let logger: Logger = Logger::default();
-        logger.warn(&format!("Container {container_id} is already stopped!"));
-        return Response {
-            response_code: 409, // Conflict
-            headers: None,
-            body: None,
-        };
+        logger.warn(&format!(
+            "Failed to stop container {container_id}. It is already stopped!"
+        ));
+        return DEFAULT_RESPONSES.conflict; // 409
     }
 
     if my_data.is_dead {
@@ -434,11 +438,7 @@ pub fn handler_stop_container(request: &Request) -> Response {
         logger.warn(&format!(
             "Failed to stop container {container_id}. It is dead!"
         ));
-        return Response {
-            response_code: 409, // Conflict
-            headers: None,
-            body: None,
-        };
+        return DEFAULT_RESPONSES.conflict; // 409
     }
 
     // ------------------------------------------------------------------
@@ -449,6 +449,7 @@ pub fn handler_stop_container(request: &Request) -> Response {
     do_docker_command(container_id, "stop", "stopped")
 }
 
+// функция-handler, которая отрабатывает команду docker: docker restart <label>
 pub fn handler_restart_container(request: &Request) -> Response {
     // Нужно передать команду stop контейнеру с определенным label = :id
     // :id хранится в request в поле rest_params (это Hash-table)
@@ -465,8 +466,8 @@ pub fn handler_restart_container(request: &Request) -> Response {
     // ------ №2. Проверим, что такой id (<label>) существует------------
     // ------------------------------------------------------------------
     let resp_check: Response = check_existence_container(container_id);
-    if resp_check.response_code == 500 {
-        // Internal Server Error
+    if resp_check == DEFAULT_RESPONSES.internal_server_error {
+        // 500
         return resp_check;
     }
 
@@ -495,23 +496,15 @@ pub fn handler_restart_container(request: &Request) -> Response {
         logger.warn(&format!(
             "Failed to restart container {container_id}. It is dead!"
         ));
-        return Response {
-            response_code: 409, // Conflict
-            headers: None,
-            body: None,
-        };
+        return DEFAULT_RESPONSES.conflict; // 409
     }
 
     if my_data.is_restarting {
         let logger: Logger = Logger::default();
         logger.warn(&format!(
-            "Failed to restart container {container_id}. It is restarting!"            
+            "Failed to restart container {container_id}. It is restarting!"
         ));
-        return Response {
-            response_code: 409, // Conflict
-            headers: None,
-            body: None,
-        };
+        return DEFAULT_RESPONSES.conflict; // 409
     }
     // ------------------------------------------------------------------
     // ------ №5. Выполним команду docker <command> <label> -------------

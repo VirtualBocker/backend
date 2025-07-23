@@ -1,15 +1,15 @@
 use crate::lib::config;
 
 use std::{
-    collections::HashMap,
-    io::{BufRead, BufReader, Write},
-    net::{SocketAddr, TcpListener},
+    collections::HashMap, // Содержит основные структуры данных (контейнеры) для хранения и организации коллекций элементов
+    io::{BufRead, BufReader, Write}, // Набор типов-обёрткок (BufReader) и трейтов (BufRead, Write) для работы с вводом‑выводом (I/O) + стандартные потоки I/O и потоки ошибок
+    net::{SocketAddr, TcpListener}, // Инструменты для сетевого программирования: TCP-сокеты (TcpListener), Адреса и порты (SocketAddr) и др.
 };
 
 use crate::lib::{
     logger::Logger,
     parse_funcs::{deser_response, parse_request},
-    req_res_structs::{Method, Response},
+    req_res_structs::{DEFAULT_RESPONSES, Method, Response},
     request::Request,
     server_errors::ServerError,
 };
@@ -17,66 +17,86 @@ use crate::lib::{
 type HandlerFn = fn(&Request) -> Response;
 // То есть, например, handle_home(req) принимает на вход Request и возвращает Response.
 
-const BAD_REQUEST_RESPONSE: Response = Response {
-    response_code: 404,
-    headers: None,
-    body: None,
-};
-
-const NOT_FOUND_RESPONSE: Response = Response {
-    response_code: 404,
-    headers: None,
-    body: None,
-};
-
 #[derive(Debug)]
 pub struct Server {
-    listener: TcpListener,
+    listener: TcpListener, // TcpListener: слушатель TCP‑соединений, уже привязанный к адресу 0.0.0.0:config.port
     handlers: HashMap<Method, HashMap<&'static str, HandlerFn>>,
-    pub log: Logger,
-    pub config: config::Config,
+    pub log: Logger, // Logger: настроенный по config логгер для записи событий сервера
+    pub config: config::Config, // Config: исходная конфигурация (порт, уровни логирования, таймауты и т.д.)
 }
 
-/*
+/*Гипотетический пример схемы HashMap table:
 handlers                          // HashMap<Method, …>
 │
-├── Method::GET ──┐               // 1‑й уровень
+├── Method::GET ──┐  // 1‑й уровень
 │                 │
-│   +---------------------------+  // 2‑й уровень (HashMap<String, HandlerFn>)
-│   |  "/home"    → handle_home |
-│   |  "/about"   → handle_about|
-│   |  "/contact" → handle_contact
-│   +---------------------------+
+│   +-----------------------------+  // 2‑й уровень (HashMap<String, HandlerFn>)
+│   |  "/home"    → handle_home   |
+│   |  "/about"   → handle_about  |
+│   |  "/contact" → handle_contact|
+│   +-----------------------------+
 │
-├── Method::POST ─┐
+├── Method::POST ─┐  // 1‑й уровень
 │                 │
-│   +---------------------------+
-│   | "/submit"   → handle_submit
-│   +---------------------------+
+│   +----------------------------+   // 2‑й уровень (HashMap<String, HandlerFn>)
+│   | "/submit"   → handle_submit|
+│   +----------------------------+
 │
-├── Method::PUT  ─┐
+├── Method::PUT  ─┐  // 1‑й уровень
 │                 │
-│   +---------------------------+
-│   | "/api/user" → handle_put_user
-│   +---------------------------+
+│   +------------------------------+   // 2‑й уровень (HashMap<String, HandlerFn>)
+│   | "/api/user" → handle_put_user|
+│   +------------------------------+
 │
-└── Method::DELETE ─┐
-                  │
-    +---------------------------+
-    | "/api/user" → handle_del_user
-    +---------------------------+
-
+└── Method::DELETE ─┐ // 1‑й уровень
+                    │
+    +------------------------------+   // 2‑й уровень (HashMap<String, HandlerFn>)
+    | "/api/user" → handle_del_user|
+    +------------------------------+
 */
 
 impl Server {
+    // Метод принимает готовый объект Config, где уже задан: порт, уровень логирования
+    //       возвращает Result: либо инициализированный Server, либо ошибку ServerError, если что‑то пошло не так.
     pub fn with_config(config: config::Config) -> Result<Server, ServerError> {
-        let log = Logger::with_config(&config);
+        // ------ 1. Настройка логгера ------
+        let log = Logger::with_config(&config); // Logger::with_config читает из Config формат даты/времени и уровень логов и строит экземпляр Logger
 
+        // ------ 2. Открытие TCP‑сокета ------
         let listener = TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], config.port)))
             .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}")))?;
+        // I) SocketAddr::from(([0, 0, 0, 0], config.port)) -- Адрес 0.0.0.0 означает слушать на всех сетевых интерфейсах (все IP‑адреса машины)
+        //                                 config.port - номер порта указанного в config файле
+        //
+        // II) fn bind(addr: SocketAddr) -> Result<TcpListener, std::io::Error>
+        // TcpListener::bind(...) функция, которая пытается открыть TCP‑порт и начать слушать входящие соединения по адресу 0.0.0.0:port, где 0.0.0.0 - все IP адреса машины
+        //                        возвращает Result<std::net::TcpListener, std::io::Error>
+        //                                   успех => вернем объект TcpListener
+        //                                   ошибка => вернем системную ошибку
+        //
+        // III) .map_err(|e| ServerError::InitError(format!("Failed to init TCP listener: {e}"))) -- преобразование системной ошибки в доменную
+        //      берёт Result<TcpListener, std::io::Error>
+        //                          Пусть bind вернул Err(e) (например, порт занят или недостаточно прав)
+        //                          .map_err преобразует ошибочный вариант std::io::Error в наш тип ServerError::InitError(String) (указанный в файле server_errors.rs)
+        //                          в результате получаем сообщение, которое хранится как String в объекте ServerError::InitError("сообщение с ошибкой")
+        //      возвращает Result<TcpListener, ServerError>.
+        //                          т.е. если fn bind вернул Ok(TcpListener), то map_err пропускает его дальше как Ok(TcpListener)
+        //                               если fn bind вернул Err(io::Error), то map_err применит функцию и преобразует в Err(ServerError::InitError(...))
+        //
+        // IV) ? -- оператор ? смотрит на Result<TcpListener, ServerError>:
+        //                          если вернулось Ok(TcpListener), то ? раскрывает значение с помощью unwrap() и присваивает переменнной
+        //                          если вернулось Err(ServerError), то ? возвращает из текущей функции with_config данный Err(ServerError).
 
+        // ------ 3. Создание маршрута / таблицы обработчиков ------
         // Инициализируем нашу Hash-map таблицу, которая будет хранить handlers для различных путей
         let mut handlers: HashMap<Method, HashMap<&str, HandlerFn>> = HashMap::new();
+
+        /*
+        handlers                                // HashMap<Method, HashMap<&str, HandlerFn>>
+        │
+        │   +-----------------------------+
+        └── |(пусто, нет ни одного ключа) |       // handlers.len() == 0
+            +-----------------------------+ */
 
         handlers.insert(Method::GET, HashMap::new());
         handlers.insert(Method::POST, HashMap::new());
@@ -84,18 +104,54 @@ impl Server {
         handlers.insert(Method::DELETE, HashMap::new());
         handlers.insert(Method::OTHER, HashMap::new());
 
-        // Возвращаем наш объект сервера
+        /*
+        handlers // HashMap<Method, HashMap<&str, HandlerFn>>
+        │
+        ├── Method::GET ──┐  // 1-й уровень
+        │                 │
+        │     +-----------------------------+ // 2-й уровень (HashMap<&str, HandlerFn>)
+        │     |  (пусто)                    |
+        │     +-----------------------------+
+        │
+        ├── Method::POST ─┐
+        │                 │
+        │     +-----------------------------+
+        │     |  (пусто)                    |
+        │     +-----------------------------+
+        │
+        ├── Method::PUT ──┐
+        │                 │
+        │     +-----------------------------+
+        │     |  (пусто)                    |
+        │     +-----------------------------+
+        │
+        ├── Method::DELETE ─┐
+        │                   │
+        │     +-----------------------------+
+        │     |  (пусто)                    |
+        │     +-----------------------------+
+        │
+        └── Method::OTHER ──┐
+                            │
+            +-----------------------------+
+            |  (пусто)                    |
+            +-----------------------------+
+
+         */
+
+        // ------ 4. Финальный конструктор Server ------
+        // Возвращаем объект сервера
         Ok(Self {
-            listener,
-            handlers,
-            log,
-            config,
+            listener, // TcpListener: слушатель TCP‑соединений, уже привязанный к адресу 0.0.0.0:config.port
+            handlers, // HashMap table (пустой, но готовый к заполнению)
+            log,      // Logger: настроенный по config логгер для записи событий сервера
+            config,   // Config: исходная конфигурация (порт, уровни логирования, таймауты и т.д.)
         })
     }
 
-    // Новый экземпляр сервера
+    // Новый экземпляр сервера с помощью конструктор без параметров new()
     pub fn new() -> Result<Server, ServerError> {
-        Self::with_config(config::Config::default())
+        Self::with_config(config::Config::default()) // конструктор вызывает функцию with_config, которая возвращает Result<Server, ServerError>
     }
 
     pub fn add_handler(
@@ -327,14 +383,16 @@ impl Server {
                             }
 
                             if !found_path {
-                                let _ =
-                                    stream.write_all(deser_response(NOT_FOUND_RESPONSE).as_bytes());
+                                let _ = stream.write_all(
+                                    deser_response(DEFAULT_RESPONSES.not_found).as_bytes(),
+                                );
                             }
                         }
                         Err(e) => {
                             self.log.debug(&format!("Server error: {e}"));
-                            let _ =
-                                stream.write_all(deser_response(BAD_REQUEST_RESPONSE).as_bytes());
+                            let _ = stream.write_all(
+                                deser_response(DEFAULT_RESPONSES.bad_request).as_bytes(),
+                            );
                         }
                     }
                 }

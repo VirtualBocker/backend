@@ -107,6 +107,7 @@ handlers                          // HashMap<Method, …>
 │                 │
 │   +------------------------------------------------+  // 2‑й уровень (HashMap<String, HandlerFn>)
 │   |  "/container/" → handler_return_all_containers |
+│   |  "/container/:id/" → handler_inspect_container |
 │   +------------------------------------------------+
 │
 ├── Method::POST ─┐   // 1‑й уровень
@@ -115,6 +116,8 @@ handlers                          // HashMap<Method, …>
 │   | "/container/:id/restart" → handler_restart_container |
 │   | "/container/:id/start"   → handler_start_container   |
 │   | "/container/:id/stop"    → handler_stop_container    |
+│   | "/container/:id/pause"   → handler_pause_container   |
+│   | "/container/:id/unpause" → handler_unpause_container |
 │   +------------------------------------------------------+
 │
 ├── Method::PUT  ─┐   // 1‑й уровень
@@ -125,8 +128,8 @@ handlers                          // HashMap<Method, …>
 │
 └── Method::DELETE ─┐ // 1‑й уровень
                     │
-    +---------------------------+ // 2‑й уровень (HashMap<String, HandlerFn>)
-    | EMPTY                     |
-    +---------------------------+
+    +------------------------------------------------+ // 2‑й уровень (HashMap<String, HandlerFn>)
+│   | "/container/:id/" → handler_remove_container   |
+    +------------------------------------------------+
 
 */

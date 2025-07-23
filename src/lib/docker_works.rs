@@ -65,8 +65,6 @@ impl Display for ContainerError {
     }
 }
 
-// src/lib/docker_work.rs
-
 // Парсим все докер контейнеры на системе с помощью команды
 // docker ps -a --no-trunc --format "{{.Names}}\t{{.Status}}\t{{.Image}}\t{{.Command}}"
 // Произошла ошибка докера - Возвращаем ContainerError::DockerError с пояснением
